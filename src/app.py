@@ -177,16 +177,19 @@ def request_registration_confirm(**kwargs):
 def confirm_registration(event, email, token):
     try:
         e = Event.query.filter_by(name=event).one()
-        r = Registration.query.filter_by(email=email, verified=False, form=e.id).one()
+        r = Registration.query.filter_by(email=email, form=e.id).one()
     except:
-        return False
-    if r.verification_token() == token or token == True:
-        r.verified = True
-        db.session.add(r)
-        db.session.commit()
-        return True
+        return "unverified"
+    if not r.verified:
+        if r.verification_token() == token or token == True:
+            r.verified = True
+            db.session.add(r)
+            db.session.commit()
+            return "verified"
+        else:
+            return "unverified"
     else:
-        return False
+        return "already-verified"
 
 @app.cli.command()
 @click.option('--event', required=True, help='Event name')
@@ -215,8 +218,10 @@ def index():
 def verify(form, email, token):
     e_name = Event.query.get(form).name
     result = confirm_registration(e_name, email, token)
-    if result:
+    if result == "verified":
         return redirect("https://cs.wikipedia.org/wiki/Wikipedie:%s/Registrace_ověřena" % e_name)
+    elif result == "already-verified":
+        return redirect("https://cs.wikipedia.org/wiki/Wikipedie:%s/Registrace_již_ověřena" % e_name)
     else:
         return redirect("https://cs.wikipedia.org/wiki/Wikipedie:%s/Registrace_neověřena" % e_name)
 
