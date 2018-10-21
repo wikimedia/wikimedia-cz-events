@@ -210,11 +210,12 @@ def index():
 
 @app.route('/verify/<form>/<email>/<token>')
 def verify(form, email, token):
-    result = confirm_registration(form, email, token)
+    e_name = Event.query.get(form).name
+    result = confirm_registration(e_name, email, token)
     if result:
-        return render_template('verified.html')
+        return redirect("https://cs.wikipedia.org/wiki/Wikipedie:%s/Registrace_ověřena" % e_name)
     else:
-        return render_template('unverified.html')
+        return redirect("https://cs.wikipedia.org/wiki/Wikipedie:%s/Registrace_neověřena" % e_name)
 
 if __name__ == "__main__":
     app.run(debug=True, threaded=True)
