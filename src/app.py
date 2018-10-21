@@ -41,7 +41,7 @@ from oauth2client.file import Storage
 __dir__ = os.path.dirname(__file__)
 
 # Google API constants
-SCOPES = 'https://www.googleapis.com/auth/drive.readonly'
+SCOPES = 'https://www.googleapis.com/auth/spreadsheets'
 CLIENT_SECRET_FILE = os.path.join(__dir__, 'client_secret.json')
 APPLICATION_NAME = 'Wikiconference'
 
@@ -81,28 +81,32 @@ class Registration(db.Model):
     email = db.Column(db.String(255), nullable=False, primary_key=True)
     form = db.Column(db.String(255), nullable=False)
     verified = db.Column(db.Boolean, nullable=False, default=False)
+    row = db.Column(db.Integer, nullable=False, default=-1)
 
     def verification_token(self):
         return hashlib.md5((self.email + app.config.get('SECRET_KEY')).encode('utf-8')).hexdigest()
+
+    def verified_string(self):
+        if self.verified:
+            return "Ověřeno"
+        else:
+            return "Neověřeno"
 
 class Event(db.Model):
     id = db.Column(db.String(255), primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     list = db.Column(db.String(255), nullable=False)
-    column = db.Column(db.String(2), nullable=False)
-
-@app.cli.command()
-def initdb():
-    db.drop_all()
-    db.create_all()
+    email_column = db.Column(db.String(2), nullable=False)
+    verified_column = db.Column(db.String(2), nullable=False)
 
 @app.cli.command()
 @click.option('--event', required=True, help="Event name")
 @click.option('--table-id', required=True, help='ID of your Google Spreadsheet table containing participants')
 @click.option('--list', required=True, help='Name of list containing your participants; please use its full name')
 @click.option('--email-column', required=True, help='Letter of column containing email addresses of your participants; please use A for first column, B for second etc.')
-def new_event(event, table_id, list, email_column):
-    e = Event(id=table_id, name=event, list=list, column=email_column)
+@click.option('--verified-column', required=True, help='Letter of column containing if registration was verified of your participants; please use A for first column, B for second etc.')
+def new_event(event, table_id, list, email_column, verified_column):
+    e = Event(id=table_id, name=event, list=list, email_column=email_column, verified_column=verified_column)
     db.session.add(e)
     db.session.commit()
 
@@ -123,14 +127,34 @@ def pull(event, noauth_local_webserver, logging_level):
     event = Event.query.filter_by(name=event).one()
     i = 2
     while True:
-        values = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.column, str(i))).execute().get('values')
-        i += 1
+        values = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.email_column, str(i))).execute().get('values')
         if values is not None:
-            r = Registration(email=values[0][0], form=event.id)
+            r = Registration(email=values[0][0], form=event.id, row=i)
             db.session.add(r)
             db.session.commit()
         else:
             break
+        i += 1
+
+@app.cli.command()
+@click.option('--event', required=True, help="Event name")
+@click.option('--noauth_local_webserver', is_flag=True, help='Use this on headless machine')
+@click.option('--logging-level', default='DEBUG')
+def push(event, noauth_local_webserver, logging_level):
+    credentials = get_credentials(CredentialsConfig(noauth_local_webserver, logging_level))
+    http = credentials.authorize(httplib2.Http())
+    service = discovery.build('sheets', 'v4', http=http)
+    event = Event.query.filter_by(name=event).one()
+    for r in Registration.query.filter_by(form=event.id).all():
+        payload = {
+            "range": "'%s'!%s%s" % (event.list, event.verified_column, str(r.row)),
+            "values": [
+                [
+                    r.verified_string()
+                ]
+            ]
+        }
+        service.spreadsheets().values().update(spreadsheetId=event.id, range=payload["range"], valueInputOption="RAW", body=payload).execute()
 
 def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=None, variables={}):
     msg = MIMEMultipart('alternative')
