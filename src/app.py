@@ -85,27 +85,48 @@ class Registration(db.Model):
     def verification_token(self):
         return hashlib.md5((self.email + app.config.get('SECRET_KEY')).encode('utf-8')).hexdigest()
 
+class Event(db.Model):
+    id = db.Column(db.String(255), primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    list = db.Column(db.String(255), nullable=False)
+    column = db.Column(db.String(2), nullable=False)
+
 @app.cli.command()
 def initdb():
     db.drop_all()
     db.create_all()
 
 @app.cli.command()
-@click.option('--table-id', required=True, help='ID of Google Spreadsheet containing your participants')
+@click.option('--event', required=True, help="Event name")
+@click.option('--table-id', required=True, help='ID of your Google Spreadsheet table containing participants')
 @click.option('--list', required=True, help='Name of list containing your participants; please use its full name')
 @click.option('--email-column', required=True, help='Letter of column containing email addresses of your participants; please use A for first column, B for second etc.')
+def new_event(event, table_id, list, email_column):
+    e = Event(id=table_id, name=event, list=list, column=email_column)
+    db.session.add(e)
+    db.session.commit()
+
+@app.cli.command()
+def list_events():
+    es = Event.query.all()
+    for e in es:
+        print("* %s" % e.name)
+
+@app.cli.command()
+@click.option('--event', required=True, help="Event name")
 @click.option('--noauth_local_webserver', is_flag=True, help='Use this on headless machine')
 @click.option('--logging-level', default='DEBUG')
-def pull(table_id, list, email_column, noauth_local_webserver, logging_level):
+def pull(event, noauth_local_webserver, logging_level):
     credentials = get_credentials(CredentialsConfig(noauth_local_webserver, logging_level))
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('sheets', 'v4', http=http)
+    event = Event.query.filter_by(name=event).one()
     i = 2
     while True:
-        values = service.spreadsheets().values().get(spreadsheetId=table_id, range="'%s'!%s%s" % (list, email_column, str(i))).execute().get('values')
+        values = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.column, str(i))).execute().get('values')
         i += 1
         if values is not None:
-            r = Registration(email=values[0][0], form=table_id)
+            r = Registration(email=values[0][0], form=event.id)
             db.session.add(r)
             db.session.commit()
         else:
@@ -129,13 +150,14 @@ def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=N
 
 
 @app.cli.command()
-@click.option('--table-id', required=True, help='ID of Google Spreadsheet containing your participants')
+@click.option('--event', required=True, help='ID of Google Spreadsheet containing your participants')
 @click.option('--subject', default="[Wikikonference] Potvrzení registrace", help='Subject of your mails', show_default=True)
 @click.option('--from-address', default='wikikonference@wikimedia.cz', help='Address the mails will be coming from', show_default=True)
 @click.option('--from-name', default='Wikikonference', help='Display name that will see participants next to from address', show_default=True)
 @click.option('--smtp-server', default='smtp-relay.gmail.com', help='Hostname of your mail server', show_default=True)
 @click.option('--debug-to', default=None, help='[debug] This will force all mails to come to specified mailbox')
 def request_registration_confirm(**kwargs):
+    table_id = Event.query.filter_by(wikipage=kwargs.get('event')).one().id
     s = smtplib.SMTP(kwargs.get('smtp_server'))
     for r in Registration.query.filter_by(form=kwargs.get('table_id')).all():
         sendmail(
@@ -145,14 +167,15 @@ def request_registration_confirm(**kwargs):
             r.email,
             kwargs.get('subject'),
             os.path.join(__dir__, 'templates', 'email', 'verify.html'),
-            kwargs.get('debug_to'), {"verify_link": "https://events.wikimedia.cz/verify/%s/%s/%s" % (kwargs.get('table_id'), r.email, r.verification_token())}
+            kwargs.get('debug_to'), {"verify_link": "https://events.wikimedia.cz/verify/%s/%s/%s" % (table_id, r.email, r.verification_token())}
         )
         break
     s.quit()
 
-def confirm_registration(form, email, token):
+def confirm_registration(event, email, token):
     try:
-        r = Registration.query.filter_by(email=email, verified=False, form=form).one()
+        e = Event.query.filter_by(name=event).one()
+        r = Registration.query.filter_by(email=email, verified=False, form=e.id).one()
     except:
         return False
     if r.verification_token() == token or token == True:
@@ -163,16 +186,17 @@ def confirm_registration(form, email, token):
         return False
 
 @app.cli.command()
-@click.option('--table-id', required=True, help='ID of Google Spreadsheet containing your participants')
+@click.option('--event', required=True, help='Event name')
 @click.option('--email', required=True, help='Email address you want to confirm')
-def confirm(table_id, email):
-    confirm_registration(table_id, email, True)
+def confirm(event, email):
+    confirm_registration(event, email, True)
 
 @app.cli.command()
-@click.option('--table-id', required=True, help='ID of Google Spreadsheet containing your participants')
+@click.option('--event', required=True, help='Event name')
 @click.option('--display', default='all', show_default=True, type=click.Choice(('all', 'unverified', 'verified')))
-def list_registrations(table_id, display):
-    rs = Registration.query.filter_by(form=table_id)
+def list_registrations(event, display):
+    e = Event.query.filter_by(name=event).one()
+    rs = Registration.query.filter_by(form=e.id)
     if display == 'unverified':
         rs = rs.query.filter_by(verified=False)
     elif display == 'verified':
