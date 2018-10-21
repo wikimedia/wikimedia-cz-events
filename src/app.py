@@ -79,6 +79,7 @@ migrate = Migrate(app, db)
 
 class Registration(db.Model):
     email = db.Column(db.String(255), nullable=False, primary_key=True)
+    form = db.Column(db.String(255), nullable=False)
     verified = db.Column(db.Boolean, nullable=False, default=False)
 
     def verification_token(self):
@@ -89,10 +90,13 @@ def initdb():
     db.drop_all()
     db.create_all()
 
-def emails(table_id, list, email_column, noauth_local_webserver, logging_level):
-    """
-    This yields participant's email addresses
-    """
+@app.cli.command()
+@click.option('--table-id', required=True, help='ID of Google Spreadsheet containing your participants')
+@click.option('--list', required=True, help='Name of list containing your participants; please use its full name')
+@click.option('--email-column', required=True, help='Letter of column containing email addresses of your participants; please use A for first column, B for second etc.')
+@click.option('--noauth_local_webserver', is_flag=True, help='Use this on headless machine')
+@click.option('--logging-level', default='DEBUG')
+def pull(table_id, list, email_column, noauth_local_webserver, logging_level):
     credentials = get_credentials(CredentialsConfig(noauth_local_webserver, logging_level))
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('sheets', 'v4', http=http)
@@ -101,16 +105,20 @@ def emails(table_id, list, email_column, noauth_local_webserver, logging_level):
         values = service.spreadsheets().values().get(spreadsheetId=table_id, range="'%s'!%s%s" % (list, email_column, str(i))).execute().get('values')
         i += 1
         if values is not None:
-            yield values[0][0]
+            r = Registration(email=values[0][0], form=table_id)
+            db.session.add(r)
+            db.session.commit()
         else:
             break
 
-def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=None):
+def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=None, variables={}):
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
     msg['From'] = "%s <%s>" % (from_name, from_address)
     msg['To'] = to
     html = open(mail_text_file).read()
+    for variable in variables:
+        html = html.replace('{{%s}}' % variable.upper(), variables[variable])
     html_part = MIMEText(html, 'html')
     msg.attach(html_part)
     if debug_to is not None:
@@ -122,26 +130,29 @@ def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=N
 
 @app.cli.command()
 @click.option('--table-id', required=True, help='ID of Google Spreadsheet containing your participants')
-@click.option('--list', required=True, help='Name of list containing your participants; please use its full name')
-@click.option('--email-column', required=True, help='Letter of column containing email addresses of your participants; please use A for first column, B for second etc.')
-@click.option('--mail-text-file', required=True, help='Path to file containing HTML email that will be send to your participants')
 @click.option('--subject', default="[Wikikonference] Potvrzení registrace", help='Subject of your mails', show_default=True)
 @click.option('--from-address', default='wikikonference@wikimedia.cz', help='Address the mails will be coming from', show_default=True)
 @click.option('--from-name', default='Wikikonference', help='Display name that will see participants next to from address', show_default=True)
 @click.option('--smtp-server', default='smtp-relay.gmail.com', help='Hostname of your mail server', show_default=True)
 @click.option('--debug-to', default=None, help='[debug] This will force all mails to come to specified mailbox')
-@click.option('--noauth_local_webserver', is_flag=True, help='Use this on headless machine')
-@click.option('--logging-level', default='DEBUG')
 def request_registration_confirm(**kwargs):
     s = smtplib.SMTP(kwargs.get('smtp_server'))
-    for email in emails(kwargs.get('table_id'), kwargs.get('list'), kwargs.get('email_column'), kwargs.get('noauth_local_webserver'), kwargs.get('logging_level')):
-        sendmail(s, kwargs.get('from_address'), kwargs.get('from_name'), email, kwargs.get('subject'), kwargs.get('mail_text_file'), kwargs.get('debug_to'))
+    for r in Registration.query.filter_by(form=kwargs.get('table_id')).all():
+        sendmail(
+            s,
+            kwargs.get('from_address'),
+            kwargs.get('from_name'),
+            r.email,
+            kwargs.get('subject'),
+            os.path.join(__dir__, 'templates', 'email', 'verify.html'),
+            kwargs.get('debug_to'), {"verify_link": "https://events.wikimedia.cz/verify/%s/%s/%s" % (kwargs.get('table_id'), r.email, r.verification_token())}
+        )
         break
     s.quit()
 
-def confirm_registration(email, token):
+def confirm_registration(form, email, token):
     try:
-        r = Registration.query.filter_by(email=email, verified=False).one()
+        r = Registration.query.filter_by(email=email, verified=False, form=form).one()
     except:
         return False
     if r.verification_token() == token or token == True:
@@ -152,29 +163,30 @@ def confirm_registration(email, token):
         return False
 
 @app.cli.command()
+@click.option('--table-id', required=True, help='ID of Google Spreadsheet containing your participants')
 @click.option('--email', required=True, help='Email address you want to confirm')
-def confirm(email):
-    confirm_registration(email, True)
+def confirm(table_id, email):
+    confirm_registration(table_id, email, True)
 
 @app.cli.command()
+@click.option('--table-id', required=True, help='ID of Google Spreadsheet containing your participants')
 @click.option('--display', default='all', show_default=True, type=click.Choice(('all', 'unverified', 'verified')))
-def list_registrations(display):
-    if display == 'all':
-        rs = Registration.query.all()
-    elif display == 'unverified':
-        rs = Registration.query.filter_by(verified=False)
+def list_registrations(table_id, display):
+    rs = Registration.query.filter_by(form=table_id)
+    if display == 'unverified':
+        rs = rs.query.filter_by(verified=False)
     elif display == 'verified':
-        rs = Registration.query.filter_by(verified=True)
-    for r in rs:
+        rs = rs.query.filter_by(verified=True)
+    for r in rs.all():
         click.echo("* %s" % r.email)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/verify/<email>/<token>')
-def verify(email, token):
-    result = confirm_registration(email, token)
+@app.route('/verify/<form>/<email>/<token>')
+def verify(form, email, token):
+    result = confirm_registration(form, email, token)
     if result:
         return render_template('verified.html')
     else:
