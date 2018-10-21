@@ -198,6 +198,32 @@ def request_registration_confirm(**kwargs):
         break
     s.quit()
 
+@app.cli.command()
+@click.option('--event', required=True, help='ID of Google Spreadsheet containing your participants')
+@click.option('--subject', default="[Wikikonference] Informace pro účastníky", help='Subject of your mails', show_default=True)
+@click.option('--from-address', default='wikikonference@wikimedia.cz', help='Address the mails will be coming from', show_default=True)
+@click.option('--from-name', default='Wikikonference', help='Display name that will see participants next to from address', show_default=True)
+@click.option('--email-file', required=True, help='Path to HTML that will be distributed to your participants via mail', show_default=True)
+@click.option('--smtp-server', default='smtp-relay.gmail.com', help='Hostname of your mail server', show_default=True)
+@click.option('--debug-to', default=None, help='[debug] This will force all mails to come to specified mailbox')
+def mailall(**kwargs):
+    table_id = Event.query.filter_by(name=kwargs.get('event')).one().id
+    s = smtplib.SMTP(kwargs.get('smtp_server'))
+    for r in Registration.query.filter_by(form=table_id).all():
+        print("Processing %s" % r.email)
+        sendmail(
+            s,
+            kwargs.get('from_address'),
+            kwargs.get('from_name'),
+            r.email,
+            kwargs.get('subject'),
+            kwargs.get('email_file'),
+            kwargs.get('debug_to'),
+            {}
+        )
+        break
+    s.quit()
+
 def confirm_registration(event, email, token):
     try:
         e = Event.query.filter_by(name=event).one()
