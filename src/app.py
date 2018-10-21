@@ -157,7 +157,7 @@ def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=N
 @click.option('--smtp-server', default='smtp-relay.gmail.com', help='Hostname of your mail server', show_default=True)
 @click.option('--debug-to', default=None, help='[debug] This will force all mails to come to specified mailbox')
 def request_registration_confirm(**kwargs):
-    table_id = Event.query.filter_by(wikipage=kwargs.get('event')).one().id
+    table_id = Event.query.filter_by(name=kwargs.get('event')).one().id
     s = smtplib.SMTP(kwargs.get('smtp_server'))
     for r in Registration.query.filter_by(form=kwargs.get('table_id')).all():
         sendmail(
