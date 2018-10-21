@@ -183,6 +183,7 @@ def confirm_registration(event, email, token):
     if r.verification_token() == token or token == True:
         r.verified = True
         db.session.add(r)
+        db.session.commit()
         return True
     else:
         return False
