@@ -167,7 +167,8 @@ def request_registration_confirm(**kwargs):
             r.email,
             kwargs.get('subject'),
             os.path.join(__dir__, 'templates', 'email', 'verify.html'),
-            kwargs.get('debug_to'), {"verify_link": "https://events.wikimedia.cz/verify/%s/%s/%s" % (table_id, r.email, r.verification_token())}
+            kwargs.get('debug_to'),
+            {"verify_link": "https://events.wikimedia.cz/verify/%s/%s/%s" % (table_id, r.email, r.verification_token())}
         )
         break
     s.quit()
