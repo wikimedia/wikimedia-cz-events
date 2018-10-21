@@ -159,7 +159,8 @@ def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=N
 def request_registration_confirm(**kwargs):
     table_id = Event.query.filter_by(name=kwargs.get('event')).one().id
     s = smtplib.SMTP(kwargs.get('smtp_server'))
-    for r in Registration.query.filter_by(form=kwargs.get('table_id')).all():
+    for r in Registration.query.filter_by(form=table_id).all():
+        print("Processing %s" % r.email)
         sendmail(
             s,
             kwargs.get('from_address'),
