@@ -38,7 +38,7 @@ from oauth2client import tools
 from oauth2client.file import Storage
 
 # Flask constants
-__dir__ = os.path.dirname(__file__, static_folder="../static")
+__dir__ = os.path.dirname(__file__)
 
 # Google API constants
 SCOPES = 'https://www.googleapis.com/auth/spreadsheets'
@@ -67,7 +67,7 @@ def get_credentials(credential_config):
         print('Storing credentials to ' + credential_path)
     return credentials
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../static')
 
 # Load configuration from YAML file
 app.config.update(
