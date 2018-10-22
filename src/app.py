@@ -139,6 +139,8 @@ def pull(event, noauth_local_webserver, logging_level):
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('sheets', 'v4', http=http)
     event = Event.query.filter_by(name=event).one()
+    Registration.query.filter_by(form=event.id).delete()
+    db.session.commit()
     i = 2
     while True:
         values_email = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.email_column, str(i))).execute().get('values')
