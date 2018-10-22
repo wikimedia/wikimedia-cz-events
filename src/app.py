@@ -102,6 +102,16 @@ class Registration(db.Model):
         else:
             return "Vážená paní, vážený pane,"
 
+    def switch_on_sex(self, male, female, universal=None):
+        if self.sex == "Muž":
+            return male
+        elif self.sex == "Žena":
+            return female
+        elif universal == None:
+            return male
+        else:
+            return universal
+
 class Event(db.Model):
     id = db.Column(db.String(255), primary_key=True)
     name = db.Column(db.String(255), nullable=False)
@@ -217,7 +227,8 @@ def request_registration_confirm(**kwargs):
             kwargs.get('debug_to'),
             {
                 "verify_link": "https://events.wikimedia.cz/verify/%s/%s/%s" % (table_id, r.email, r.verification_token()),
-                "greeting": r.greeting()
+                "greeting": r.greeting(),
+                "vyplnil": r.switch_on_sex("vyplnil", "vyplnila", "vyplnil(a)")
             }
         )
     s.quit()
