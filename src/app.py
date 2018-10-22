@@ -82,7 +82,8 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 class Registration(db.Model):
-    email = db.Column(db.String(255), nullable=False, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), nullable=False)
     first_name = db.Column(db.String(255), nullable=False)
     surname = db.Column(db.String(255), nullable=False)
     username = db.Column(db.String(255), nullable=True)
@@ -186,16 +187,17 @@ def list_events():
 
 @app.cli.command()
 @click.option('--event', required=True, help="Event name")
+@click.option('--skip-rows', default=0, type=int, help='This allows you to skip some rows if you want to start with later than second row')
 @click.option('--noauth_local_webserver', is_flag=True, help='Use this on headless machine')
 @click.option('--logging-level', default='DEBUG')
-def pull(event, noauth_local_webserver, logging_level):
+def pull(event, skip_rows, noauth_local_webserver, logging_level):
     credentials = get_credentials(CredentialsConfig(noauth_local_webserver, logging_level))
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('sheets', 'v4', http=http)
     event = Event.query.filter_by(name=event).one()
     Registration.query.filter_by(form=event.id).delete()
     db.session.commit()
-    i = 2
+    i = 2 + skip_rows
     while True:
         values_email = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.email_column, str(i))).execute().get('values')
         values_sex = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.sex_column, str(i))).execute().get('values')
@@ -203,7 +205,7 @@ def pull(event, noauth_local_webserver, logging_level):
         values_surname = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.surname_column, str(i))).execute().get('values')
         values_username = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.username_column, str(i))).execute().get('values')
         values_display_on_visacka = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.display_on_visacka_column, str(i))).execute().get('values')
-        if values_email is not None and values_first_name is not None and values_username is not None and values_surname is not None:
+        if values_email is not None and values_first_name is not None and values_surname is not None:
             if values_sex is not None:
                 sex = values_sex[0][0]
             else:
@@ -212,7 +214,11 @@ def pull(event, noauth_local_webserver, logging_level):
                 display_on_visacka = values_display_on_visacka[0][0]
             else:
                 display_on_visacka = ""
-            r = Registration(email=values_email[0][0], sex=sex, first_name=values_first_name[0][0], surname=values_surname[0][0], username=values_username[0][0], form=event.id, row=i, display_on_visacka=display_on_visacka)
+            if values_username is not None:
+                username = values_username[0][0]
+            else:
+                username = ""
+            r = Registration(email=values_email[0][0], sex=sex, first_name=values_first_name[0][0], surname=values_surname[0][0], username=username, form=event.id, row=i, display_on_visacka=display_on_visacka)
             db.session.add(r)
             db.session.commit()
         else:
@@ -410,7 +416,7 @@ def generate_prezencka(event, email):
             "pdf_a": None,
             "input_password": None,
             "templating": {
-                "event": event,
+                "event": event.name,
                 "year": year(),
                 "email": email,
                 "participants": participants
