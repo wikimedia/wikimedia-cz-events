@@ -134,6 +134,18 @@ class Registration(db.Model):
             return "Wikipedista:%s" % username
         else:
             return " "
+    
+    def allow_realname(self):
+        if "občanské jméno" in self.display_on_visacka:
+            return True
+        else:
+            return False
+    
+    def allow_username(self):
+        if "uživatelské jméno" in self.display_on_visacka:
+            return True
+        else:
+            return False
 
 class Event(db.Model):
     id = db.Column(db.String(255), primary_key=True)
@@ -362,6 +374,52 @@ def generate_visacky(event, subtopic):
     process.wait()
     process.download('/var/www/events.wikimedia.cz/deploy/visacky-pdfs/all.pdf')
     click.echo('Browse to https://events.wikimedia.cz/visacky-pdfs/all.pdf and download your visackas')
+
+@app.cli.command()
+@click.option('--event', required=True, help='Event name')
+@click.option('--email', default="info@wikimedia.cz", help='E-mail you want to be on prezenčka')
+def generate_prezencka(event, email):
+    cloudconvert_api = cloudconvert.Api(config.get('CLOUDCONVERT_API_KEY'))
+    event = Event.query.filter_by(name=event).one()
+    participants = []
+    for r in Registration.query.filter_by(form=event.id).order_by('surname').all():
+        if r.allow_realname():
+            surname = r.surname
+            first_name = r.first_name
+        else:
+            surname = "(nechce uvést)"
+            first_name = "(nechce uvést)"
+        if r.allow_username():
+            username = r.username
+        else:
+            username = "(nemá/nechce uvést)"
+        participants.append({
+            "surname": surname,
+            "first_name": first_name,
+            "username": username,
+            "email": r.email
+        })
+    process = cloudconvert_api.convert({
+        "inputformat": "docx",
+        "outputformat": "pdf",
+        "input": "download",
+        "file": "https://events.wikimedia.cz/static/prezencka.docx",
+        "converteroptions": {
+            "page_range": None,
+            "optimize_print": True,
+            "pdf_a": None,
+            "input_password": None,
+            "templating": {
+                "event": event,
+                "year": year(),
+                "email": email,
+                "participants": participants
+            }
+        },
+        "wait": True
+    })
+    process.download('/var/www/events.wikimedia.cz/deploy/visacky-pdfs/prezencka.pdf')
+    click.echo('Browse to https://events.wikimedia.cz/visacky-pdfs/prezencka.pdf and download your visackas')
 
 
 def confirm_registration(event, email, token):
