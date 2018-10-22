@@ -345,7 +345,7 @@ def generate_visacky(event):
         f = "/var/www/events.wikimedia.cz/deploy/visacky-pdfs/%s.pdf" % str(i)
         print(f)
         process.download(f)
-        files.append(f.replace('/var/www/', 'https://'))
+        files.append(f.replace('/var/www/', 'https://').replace('/deploy', ''))
     process = cloudconvert_api.convert({
         "mode": "combine",
         "input": "download",
