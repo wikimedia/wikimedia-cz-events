@@ -346,12 +346,21 @@ def generate_visacky(event):
         print(f)
         process.download(f)
         files.append(f.replace('/var/www/', 'https://').replace('/deploy', ''))
-    process = cloudconvert_api.convert({
+    process = cloudconvert_api.createProcess({
+        "mode": "combine",
+        "inputformat": "pdf",
+        "outputformat": "pdf"
+    })
+    process.start({
         "mode": "combine",
         "input": "download",
-        "files": files
+        "files": files,
+        "outputformat": "pdf",
+        'save': True
     })
-    process.download('visacky.pdf')
+    process.wait()
+    process.download('/var/www/events.wikimedia.cz/deploy/visacky-pdfs/all.pdf')
+    click.echo('Browse to https://events.wikimedia.cz/visacky-pdfs/all.pdf and download your visackas')
 
 
 def confirm_registration(event, email, token):
