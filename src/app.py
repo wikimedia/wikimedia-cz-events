@@ -220,7 +220,6 @@ def request_registration_confirm(**kwargs):
                 "greeting": r.greeting()
             }
         )
-        break
     s.quit()
 
 @app.cli.command()
@@ -248,7 +247,6 @@ def mailall(**kwargs):
                 "greeting": r.greeting()
             }
         )
-        break
     s.quit()
 
 def confirm_registration(event, email, token):
