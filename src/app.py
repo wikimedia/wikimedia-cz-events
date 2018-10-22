@@ -22,6 +22,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import hashlib
 import httplib2
+import datetime
 
 # Stuff for CLI
 import click
@@ -30,6 +31,9 @@ import click
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+
+# For visacky generation
+import cloudconvert
 
 # For communication with Google API
 from apiclient import discovery
@@ -70,8 +74,8 @@ def get_credentials(credential_config):
 app = Flask(__name__, static_folder='../static')
 
 # Load configuration from YAML file
-app.config.update(
-    yaml.safe_load(open(os.path.join(__dir__, os.environ.get('FLASK_CONFIG_FILE', 'config.yaml')))))
+config = yaml.safe_load(open(os.path.join(__dir__, os.environ.get('FLASK_CONFIG_FILE', 'config.yaml'))))
+app.config.update(config)
 
 # Init DB clients
 db = SQLAlchemy(app)
@@ -79,11 +83,14 @@ migrate = Migrate(app, db)
 
 class Registration(db.Model):
     email = db.Column(db.String(255), nullable=False, primary_key=True)
+    first_name = db.Column(db.String(255), nullable=False)
     surname = db.Column(db.String(255), nullable=False)
+    username = db.Column(db.String(255), nullable=True)
     sex = db.Column(db.String(10), nullable=False)
     form = db.Column(db.String(255), nullable=False)
     verified = db.Column(db.Boolean, nullable=False, default=False)
     row = db.Column(db.Integer, nullable=False, default=-1)
+    display_on_visacka = db.Column(db.String(255), nullable=False)
 
     def verification_token(self):
         return hashlib.md5((self.email + app.config.get('SECRET_KEY')).encode('utf-8')).hexdigest()
@@ -112,25 +119,50 @@ class Registration(db.Model):
         else:
             return universal
 
+    def big_name(self):
+        if self.display_on_visacka == "občanské jméno" or self.display_on_visacka == "občanské jméno i uživatelské jméno na Wikipedii":
+            return "%s %s" % (self.first_name, self.surname)
+        elif self.display_on_visacka == "uživatelské jméno na Wikipedii":
+            username = self.username[0].upper() + self.username[1:]
+            return "Wikipedista:%s" % username
+        else:
+            return " "
+
+    def small_name(self):
+        if self.display_on_visacka == "občanské jméno i uživatelské jméno na Wikipedii":
+            username = self.username[0].upper() + self.username[1:]
+            return "Wikipedista:%s" % username
+        else:
+            return " "
+
 class Event(db.Model):
     id = db.Column(db.String(255), primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     list = db.Column(db.String(255), nullable=False)
+    first_name_column = db.Column(db.String(2), nullable=False)
     surname_column = db.Column(db.String(2), nullable=False)
+    username_column = db.Column(db.String(2), nullable=False)
     sex_column = db.Column(db.String(2), nullable=False)
     email_column = db.Column(db.String(2), nullable=False)
     verified_column = db.Column(db.String(2), nullable=False)
+    display_on_visacka_column = db.Column(db.String(2), nullable=True)
+
+def year():
+    return datetime.date.today().year
 
 @app.cli.command()
 @click.option('--event', required=True, help="Event name")
 @click.option('--table-id', required=True, help='ID of your Google Spreadsheet table containing participants')
 @click.option('--list', required=True, help='Name of list containing your participants; please use its full name')
 @click.option('--sex-column', required=True, help='Letter of column containing sex of your participants; please use A for first column, B for second etc.')
+@click.option('--first-name-column', required=True, help='Letter of column containing first name of your participants; please use A for first column, B for second etc.')
 @click.option('--surname-column', required=True, help='Letter of column containing surname of your participants; please use A for first column, B for second etc.')
+@click.option('--username-column', required=True, help='Letter of column containing username of your participants; please use A for first column, B for second etc.')
 @click.option('--email-column', required=True, help='Letter of column containing email addresses of your participants; please use A for first column, B for second etc.')
 @click.option('--verified-column', required=True, help='Letter of column containing if registration was verified of your participants; please use A for first column, B for second etc.')
-def new_event(event, table_id, list, sex_column, surname_column, email_column, verified_column):
-    e = Event(id=table_id, name=event, list=list, sex_column=sex_column, surname_column=surname_column, email_column=email_column, verified_column=verified_column)
+@click.option('--display-on-visacka-column', help='Letter of column containing what your participants want to be displayed on visacka; please use A for first column, B for second etc.')
+def new_event(event, table_id, list, sex_column, first_name_column, surname_column, username_column, email_column, verified_column, display_on_visacka_column):
+    e = Event(id=table_id, name=event, list=list, sex_column=sex_column, first_name_column=first_name_column, surname_column=surname_column, username_column=username_column, email_column=email_column, verified_column=verified_column, display_on_visacka_column=display_on_visacka_column)
     db.session.add(e)
     db.session.commit()
 
@@ -155,13 +187,20 @@ def pull(event, noauth_local_webserver, logging_level):
     while True:
         values_email = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.email_column, str(i))).execute().get('values')
         values_sex = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.sex_column, str(i))).execute().get('values')
+        values_first_name = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.first_name_column, str(i))).execute().get('values')
         values_surname = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.surname_column, str(i))).execute().get('values')
-        if values_email is not None and values_surname is not None:
+        values_username = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.username_column, str(i))).execute().get('values')
+        values_display_on_visacka = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.display_on_visacka_column, str(i))).execute().get('values')
+        if values_email is not None and values_first_name is not None and values_username is not None and values_surname is not None:
             if values_sex is not None:
                 sex = values_sex[0][0]
             else:
                 sex = ""
-            r = Registration(email=values_email[0][0], sex=sex, surname=values_surname[0][0], form=event.id, row=i)
+            if values_display_on_visacka is not None:
+                display_on_visacka = values_display_on_visacka[0][0]
+            else:
+                display_on_visacka = ""
+            r = Registration(email=values_email[0][0], sex=sex, first_name=values_first_name[0][0], surname=values_surname[0][0], username=values_username[0][0], form=event.id, row=i, display_on_visacka=display_on_visacka)
             db.session.add(r)
             db.session.commit()
         else:
@@ -259,6 +298,60 @@ def mailall(**kwargs):
             }
         )
     s.quit()
+
+@app.cli.command()
+@click.option('--event', required=True, help='Event name')
+def generate_visacky(event):
+    cloudconvert_api = cloudconvert.Api(config.get('CLOUDCONVERT_API_KEY'))
+    event = Event.query.filter_by(name=event).one()
+    i = 0
+    page = 0
+    cloudconvert_data = []
+    for r in Registration.query.filter_by(form=event.id).all():
+        if i % 9 == 0:
+            cloudconvert_data.append({
+                "subtopic": "Podtitul",
+                "event": event.name,
+                "year": str(year())
+            })
+        cloudconvert_data[page]["big_name_%s" % str(i+1)] = r.big_name()
+        cloudconvert_data[page]["small_name_%s" % str(i+1)] = r.small_name()
+        i += 1
+        if i % 9 == 0 and i != 0:
+            page += 1
+    names = ["big_name_%s" % x for x in range(1, 10)] + ["small_name_%s" % x for x in range(1, 10)]
+    i = 0
+    if not os.path.exists('/var/www/events.wikimedia.cz/deploy/visacky-pdfs'):
+        os.mkdir('/var/www/events.wikimedia.cz/deploy/visacky-pdfs')
+    files = []
+    for data in cloudconvert_data:
+        for name in names:
+            if name not in data:
+                data[name] = " "
+        process = cloudconvert_api.convert({
+            "inputformat": "docx",
+            "outputformat": "pdf",
+            "input": "download",
+            "file": "https://events.wikimedia.cz/static/visacky.docx",
+            "converteroptions": {
+                "page_range": None,
+                "optimize_print": True,
+                "pdf_a": None,
+                "input_password": None,
+                "templating": data
+            }
+        })
+        process.wait()
+        f = "/var/www/events.wikimedia.cz/deploy/visacky-pdfs/%s.pdf" % str(i)
+        files.append(f)
+        process.download(f)
+    process = cloudconvert_api.convert({
+        "mode": "combine",
+        "input": "download",
+        "files": f
+    })
+    process.download('visacky.pdf')
+
 
 def confirm_registration(event, email, token):
     try:
