@@ -38,7 +38,7 @@ from oauth2client import tools
 from oauth2client.file import Storage
 
 # Flask constants
-__dir__ = os.path.dirname(__file__)
+__dir__ = os.path.dirname(__file__, static_folder="../static")
 
 # Google API constants
 SCOPES = 'https://www.googleapis.com/auth/spreadsheets'
