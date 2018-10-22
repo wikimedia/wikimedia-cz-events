@@ -339,16 +339,17 @@ def generate_visacky(event):
                 "pdf_a": None,
                 "input_password": None,
                 "templating": data
-            }
+            },
+            "wait": True
         })
-        process.wait()
         f = "/var/www/events.wikimedia.cz/deploy/visacky-pdfs/%s.pdf" % str(i)
-        files.append(f)
+        print(f)
         process.download(f)
+        files.append(f.replace('/var/www/', 'https://'))
     process = cloudconvert_api.convert({
         "mode": "combine",
         "input": "download",
-        "files": f
+        "files": files
     })
     process.download('visacky.pdf')
 
