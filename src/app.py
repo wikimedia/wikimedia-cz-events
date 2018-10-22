@@ -186,7 +186,6 @@ def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=N
     html = open(mail_text_file).read()
     for variable in variables:
         html = html.replace('{{%s}}' % variable.upper(), variables[variable])
-    html = html.replace('{{GREETING}}', r.greeting())
     html_part = MIMEText(html, 'html')
     msg.attach(html_part)
     if debug_to is not None:
@@ -216,7 +215,10 @@ def request_registration_confirm(**kwargs):
             kwargs.get('subject'),
             os.path.join(__dir__, 'templates', 'email', 'verify.html'),
             kwargs.get('debug_to'),
-            {"verify_link": "https://events.wikimedia.cz/verify/%s/%s/%s" % (table_id, r.email, r.verification_token())}
+            {
+                "verify_link": "https://events.wikimedia.cz/verify/%s/%s/%s" % (table_id, r.email, r.verification_token()),
+                "greeting": r.greeting()
+            }
         )
         break
     s.quit()
@@ -242,7 +244,9 @@ def mailall(**kwargs):
             kwargs.get('subject'),
             kwargs.get('email_file'),
             kwargs.get('debug_to'),
-            {}
+            {
+                "greeting": r.greeting()
+            }
         )
         break
     s.quit()
