@@ -23,6 +23,7 @@ from flask_migrate import Migrate
 import hashlib
 import httplib2
 import datetime
+import time
 
 # Stuff for CLI
 import click
@@ -224,6 +225,7 @@ def pull(event, skip_rows, noauth_local_webserver, logging_level):
         else:
             break
         i += 1
+        time.sleep(7) # Slow down to prevent hitting rate limit
 
 @app.cli.command()
 @click.option('--event', required=True, help="Event name")
