@@ -308,7 +308,7 @@ def generate_visacky(event, subtopic):
     i = 0
     page = 0
     cloudconvert_data = []
-    for r in Registration.query.filter_by(form=event.id).all():
+    for r in Registration.query.filter_by(form=event.id).order_by('surname').all():
         if i % 9 == 0:
             cloudconvert_data.append({
                 "subtopic": subtopic,
