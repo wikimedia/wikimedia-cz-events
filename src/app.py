@@ -79,6 +79,8 @@ migrate = Migrate(app, db)
 
 class Registration(db.Model):
     email = db.Column(db.String(255), nullable=False, primary_key=True)
+    surname = db.Column(db.String(255), nullable=False)
+    sex = db.Column(db.String(10), nullable=False)
     form = db.Column(db.String(255), nullable=False)
     verified = db.Column(db.Boolean, nullable=False, default=False)
     row = db.Column(db.Integer, nullable=False, default=-1)
@@ -92,10 +94,20 @@ class Registration(db.Model):
         else:
             return "Neověřeno"
 
+    def greeting(self):
+        if self.sex == "Muž":
+            return "Vážený pane %s," % self.surname
+        elif self.sex == "Žena":
+            return "Vážená paní %s," % self.surname
+        else:
+            return "Vážená paní, vážený pane,"
+
 class Event(db.Model):
     id = db.Column(db.String(255), primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     list = db.Column(db.String(255), nullable=False)
+    surname_column = db.Column(db.String(2), nullable=False)
+    sex_column = db.Column(db.String(2), nullable=False)
     email_column = db.Column(db.String(2), nullable=False)
     verified_column = db.Column(db.String(2), nullable=False)
 
@@ -103,10 +115,12 @@ class Event(db.Model):
 @click.option('--event', required=True, help="Event name")
 @click.option('--table-id', required=True, help='ID of your Google Spreadsheet table containing participants')
 @click.option('--list', required=True, help='Name of list containing your participants; please use its full name')
+@click.option('--sex-column', required=True, help='Letter of column containing sex of your participants; please use A for first column, B for second etc.')
+@click.option('--surname-column', required=True, help='Letter of column containing surname of your participants; please use A for first column, B for second etc.')
 @click.option('--email-column', required=True, help='Letter of column containing email addresses of your participants; please use A for first column, B for second etc.')
 @click.option('--verified-column', required=True, help='Letter of column containing if registration was verified of your participants; please use A for first column, B for second etc.')
-def new_event(event, table_id, list, email_column, verified_column):
-    e = Event(id=table_id, name=event, list=list, email_column=email_column, verified_column=verified_column)
+def new_event(event, table_id, list, sex_column, surname_column, email_column, verified_column):
+    e = Event(id=table_id, name=event, list=list, sex_column=sex_column, surname_column=surname_column, email_column=email_column, verified_column=verified_column)
     db.session.add(e)
     db.session.commit()
 
@@ -127,9 +141,15 @@ def pull(event, noauth_local_webserver, logging_level):
     event = Event.query.filter_by(name=event).one()
     i = 2
     while True:
-        values = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.email_column, str(i))).execute().get('values')
-        if values is not None:
-            r = Registration(email=values[0][0], form=event.id, row=i)
+        values_email = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.email_column, str(i))).execute().get('values')
+        values_sex = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.sex_column, str(i))).execute().get('values')
+        values_surname = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.surname_column, str(i))).execute().get('values')
+        if values_email is not None and values_surname is not None:
+            if values_sex is not None:
+                sex = values_sex[0][0]
+            else:
+                sex = ""
+            r = Registration(email=values_email[0][0], sex=sex, surname=values_surname[0][0], form=event.id, row=i)
             db.session.add(r)
             db.session.commit()
         else:
@@ -164,6 +184,7 @@ def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=N
     html = open(mail_text_file).read()
     for variable in variables:
         html = html.replace('{{%s}}' % variable.upper(), variables[variable])
+    html = html.replace('{{GREETING}}', r.greeting())
     html_part = MIMEText(html, 'html')
     msg.attach(html_part)
     if debug_to is not None:
