@@ -206,7 +206,7 @@ def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=N
 
 
 @app.cli.command()
-@click.option('--event', required=True, help='ID of Google Spreadsheet containing your participants')
+@click.option('--event', required=True, help='Event name')
 @click.option('--subject', default="[Wikikonference] Potvrzení registrace", help='Subject of your mails', show_default=True)
 @click.option('--from-address', default='wikikonference@wikimedia.cz', help='Address the mails will be coming from', show_default=True)
 @click.option('--from-name', default='Wikikonference', help='Display name that will see participants next to from address', show_default=True)
@@ -234,7 +234,7 @@ def request_registration_confirm(**kwargs):
     s.quit()
 
 @app.cli.command()
-@click.option('--event', required=True, help='ID of Google Spreadsheet containing your participants')
+@click.option('--event', required=True, help='Event name')
 @click.option('--subject', default="[Wikikonference] Informace pro účastníky", help='Subject of your mails', show_default=True)
 @click.option('--from-address', default='wikikonference@wikimedia.cz', help='Address the mails will be coming from', show_default=True)
 @click.option('--from-name', default='Wikikonference', help='Display name that will see participants next to from address', show_default=True)
