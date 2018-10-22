@@ -301,7 +301,8 @@ def mailall(**kwargs):
 
 @app.cli.command()
 @click.option('--event', required=True, help='Event name')
-def generate_visacky(event):
+@click.option('--subtopic', default='Wikimedia Česká republika', help='Subtopic of your event')
+def generate_visacky(event, subtopic):
     cloudconvert_api = cloudconvert.Api(config.get('CLOUDCONVERT_API_KEY'))
     event = Event.query.filter_by(name=event).one()
     i = 0
@@ -310,7 +311,7 @@ def generate_visacky(event):
     for r in Registration.query.filter_by(form=event.id).all():
         if i % 9 == 0:
             cloudconvert_data.append({
-                "subtopic": "Podtitul",
+                "subtopic": subtopic,
                 "event": event.name,
                 "year": str(year())
             })
