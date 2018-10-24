@@ -372,6 +372,7 @@ def generate_visacky(event, subtopic):
     cloudconvert_data = []
     for r in order_query_by_variable(Registration.query.filter_by(form=event.id), "last_name"):
         if i % 9 == 0:
+            i = 0
             cloudconvert_data.append({
                 "subtopic": subtopic,
                 "event": event.name,
@@ -409,6 +410,7 @@ def generate_visacky(event, subtopic):
         print(f)
         process.download(f)
         files.append(f.replace('/var/www/', 'https://').replace('/deploy', ''))
+        i += 1
     process = cloudconvert_api.createProcess({
         "mode": "combine",
         "inputformat": "pdf",
