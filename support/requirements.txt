@@ -25,6 +25,7 @@ python-editor==1.0.3
 PyYAML==3.13
 requests==2.20.0
 rsa==4.0
+simplejson==3.16.0
 six==1.11.0
 SQLAlchemy==1.2.12
 uritemplate==3.0.0

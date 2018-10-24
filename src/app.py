@@ -24,6 +24,8 @@ import hashlib
 import httplib2
 import datetime
 import time
+import string
+import simplejson as json
 
 # Stuff for CLI
 import click
@@ -87,20 +89,54 @@ def initdb():
     db.drop_all()
     db.create_all()
 
+column_map = {
+    "timestamp": "Časová značka",
+    "first_name": "Jméno",
+    "last_name": "Příjmení",
+    "sex": "Pohlaví",
+    "email": "E-mailová adresa",
+    "username": "Uživatelské jméno na Wikipedii",
+    "display_on_card": "Na jmenovce bych chtěl/a mít uvedeno",
+    "place": "Místo, kde žijete",
+    "activity": "Moje aktivita na Wikipedii",
+    "expectations": "S čím byste z Wikikonference rád/a odcházel/a? Co byste se rád/a dozvěděl/a?",
+    "newsletter_bool": "Odebíráte náš newsletter?",
+    "newsletter_topics": "Jaké oblasti vás zajímají?",
+    "lunch": "Chcete, abychom vám zajistili oběd?",
+    "other": "Prostor pro cokoli, co byste nám chtěli sdělit",
+    "verified": "Stav ověření registrace"
+}
+
+def order_query_by_variable(query, variable):
+    ordering_dict = {}
+    for obj in query.all():
+        ordering_dict[obj.id] = obj.get_value(variable)
+    for id in sorted(ordering_dict, key=ordering_dict.get):
+        yield type(query.first()).query.get(id)
+
 class Registration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(255), nullable=False)
-    first_name = db.Column(db.String(255), nullable=False)
-    surname = db.Column(db.String(255), nullable=False)
-    username = db.Column(db.String(255), nullable=True)
-    sex = db.Column(db.String(10), nullable=False)
     form = db.Column(db.String(255), nullable=False)
+    sheet_data = db.Column(db.Text, nullable=False, default={})
     verified = db.Column(db.Boolean, nullable=False, default=False)
     row = db.Column(db.Integer, nullable=False, default=-1)
-    display_on_visacka = db.Column(db.String(255), nullable=False)
+
+    def verification_link(self):
+        return "https://events.wikimedia.cz/verify/%s/%s/%s" % (self.form, self.get_value("email"), self.verification_token())
 
     def verification_token(self):
-        return hashlib.md5((self.email + app.config.get('SECRET_KEY')).encode('utf-8')).hexdigest()
+        return hashlib.md5((self.get_value('email') + app.config.get('SECRET_KEY')).encode('utf-8')).hexdigest()
+    
+    @property
+    def data(self):
+        return json.loads(self.sheet_data)
+    
+    @data.setter
+    def data(self, value):
+        self.sheet_data = json.dumps(value)
+    
+    def get_value(self, variable):
+        return self.data.get(column_map[variable])
 
     def verified_string(self):
         if self.verified:
@@ -109,17 +145,17 @@ class Registration(db.Model):
             return "Neověřeno"
 
     def greeting(self):
-        if self.sex == "Muž":
-            return "Vážený pane %s," % self.surname
-        elif self.sex == "Žena":
-            return "Vážená paní %s," % self.surname
+        if self.get_value("sex") == "Muž":
+            return "Vážený pane %s," % self.get_value('last_name')
+        elif self.get_value("sex") == "Žena":
+            return "Vážená paní %s," % self.get_value('last_name')
         else:
             return "Vážená paní, vážený pane,"
 
     def switch_on_sex(self, male, female, universal=None):
-        if self.sex == "Muž":
+        if self.get_value("sex") == "Muž":
             return male
-        elif self.sex == "Žena":
+        elif self.get_value("sex") == "Žena":
             return female
         elif universal == None:
             return male
@@ -127,29 +163,29 @@ class Registration(db.Model):
             return universal
 
     def big_name(self):
-        if self.display_on_visacka == "občanské jméno" or self.display_on_visacka == "občanské jméno i uživatelské jméno na Wikipedii":
-            return "%s %s" % (self.first_name, self.surname)
-        elif self.display_on_visacka == "uživatelské jméno na Wikipedii":
-            username = self.username[0].upper() + self.username[1:]
+        if self.get_value("display_on_card") == "občanské jméno" or self.get_value("display_on_card") == "občanské jméno i uživatelské jméno na Wikipedii":
+            return "%s %s" % (self.get_value("first_name"), self.get_value("last_name"))
+        elif self.get_value("display_on_card") == "uživatelské jméno na Wikipedii":
+            username = self.get_value("username")[0].upper() + self.get_value("username")[1:]
             return "Wikipedista:%s" % username
         else:
             return " "
 
     def small_name(self):
-        if self.display_on_visacka == "občanské jméno i uživatelské jméno na Wikipedii":
-            username = self.username[0].upper() + self.username[1:]
+        if self.get_value("display_on_card") == "občanské jméno i uživatelské jméno na Wikipedii":
+            username = self.get_value("username")[0].upper() + self.get_value("username")[1:]
             return "Wikipedista:%s" % username
         else:
             return " "
     
     def allow_realname(self):
-        if "občanské jméno" in self.display_on_visacka:
+        if "občanské jméno" in self.get_value("display_on_card"):
             return True
         else:
             return False
     
     def allow_username(self):
-        if "uživatelské jméno" in self.display_on_visacka:
+        if "uživatelské jméno" in self.get_value("display_on_card"):
             return True
         else:
             return False
@@ -158,30 +194,28 @@ class Event(db.Model):
     id = db.Column(db.String(255), primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     list = db.Column(db.String(255), nullable=False)
-    first_name_column = db.Column(db.String(2), nullable=False)
-    surname_column = db.Column(db.String(2), nullable=False)
-    username_column = db.Column(db.String(2), nullable=False)
-    sex_column = db.Column(db.String(2), nullable=False)
-    email_column = db.Column(db.String(2), nullable=False)
-    verified_column = db.Column(db.String(2), nullable=False)
-    display_on_visacka_column = db.Column(db.String(2), nullable=True)
+    sheet_header = db.Column(db.Text, nullable=False, default="[]")
+
+    @property
+    def header(self):
+        return json.loads(self.sheet_header)
+    
+    @header.setter
+    def header(self, value):
+        self.sheet_header = json.dumps(value)
+
+    def variable_to_letter(self, variable):
+        return string.ascii_uppercase[self.header.index(column_map[variable])]
 
 def year():
     return datetime.date.today().year
 
 @app.cli.command()
-@click.option('--event', required=True, help="Event name")
+@click.option('--name', required=True, help="Event name")
 @click.option('--table-id', required=True, help='ID of your Google Spreadsheet table containing participants')
 @click.option('--list', required=True, help='Name of list containing your participants; please use its full name')
-@click.option('--sex-column', required=True, help='Letter of column containing sex of your participants; please use A for first column, B for second etc.')
-@click.option('--first-name-column', required=True, help='Letter of column containing first name of your participants; please use A for first column, B for second etc.')
-@click.option('--surname-column', required=True, help='Letter of column containing surname of your participants; please use A for first column, B for second etc.')
-@click.option('--username-column', required=True, help='Letter of column containing username of your participants; please use A for first column, B for second etc.')
-@click.option('--email-column', required=True, help='Letter of column containing email addresses of your participants; please use A for first column, B for second etc.')
-@click.option('--verified-column', required=True, help='Letter of column containing if registration was verified of your participants; please use A for first column, B for second etc.')
-@click.option('--display-on-visacka-column', help='Letter of column containing what your participants want to be displayed on visacka; please use A for first column, B for second etc.')
-def new_event(event, table_id, list, sex_column, first_name_column, surname_column, username_column, email_column, verified_column, display_on_visacka_column):
-    e = Event(id=table_id, name=event, list=list, sex_column=sex_column, first_name_column=first_name_column, surname_column=surname_column, username_column=username_column, email_column=email_column, verified_column=verified_column, display_on_visacka_column=display_on_visacka_column)
+def new_event(name, table_id, list):
+    e = Event(id=table_id, name=name, list=list)
     db.session.add(e)
     db.session.commit()
 
@@ -191,59 +225,60 @@ def list_events():
     for e in es:
         print("* %s" % e.name)
 
+def get_google_service(type, version, noauth_local_webserver, logging_level):
+    credentials = get_credentials(CredentialsConfig(noauth_local_webserver, logging_level))
+    http = credentials.authorize(httplib2.Http())
+    return discovery.build(type, version, http=http)
+
+def get_range_from_spreadsheet(table_id, list, range, service):
+    return service.spreadsheets().values().get(spreadsheetId=table_id, range="'%s'!%s" % (list, range)).execute().get('values')
+
 @app.cli.command()
 @click.option('--event', required=True, help="Event name")
 @click.option('--skip-rows', default=0, type=int, help='This allows you to skip some rows if you want to start with later than second row')
+@click.option('--download-at-time', default=30, type=int, help='Use this if you want to download less or more rows from the table at a time.')
 @click.option('--noauth_local_webserver', is_flag=True, help='Use this on headless machine')
 @click.option('--logging-level', default='DEBUG')
-def pull(event, skip_rows, noauth_local_webserver, logging_level):
-    credentials = get_credentials(CredentialsConfig(noauth_local_webserver, logging_level))
-    http = credentials.authorize(httplib2.Http())
-    service = discovery.build('sheets', 'v4', http=http)
+def pull(event, skip_rows, download_at_time, noauth_local_webserver, logging_level):
+    service = get_google_service('sheets', 'v4', noauth_local_webserver, logging_level)
     event = Event.query.filter_by(name=event).one()
     Registration.query.filter_by(form=event.id).delete()
     db.session.commit()
-    i = 2 + skip_rows
+    header = get_range_from_spreadsheet(event.id, event.list, 'A1:T1', service)[0]
+    if header is None:
+        return # TODO: Raise error
+    if event.header == []:
+        event.header = header
+        db.session.commit()
+    row_num = 2 + skip_rows
     while True:
-        values_email = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.email_column, str(i))).execute().get('values')
-        values_sex = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.sex_column, str(i))).execute().get('values')
-        values_first_name = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.first_name_column, str(i))).execute().get('values')
-        values_surname = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.surname_column, str(i))).execute().get('values')
-        values_username = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.username_column, str(i))).execute().get('values')
-        values_display_on_visacka = service.spreadsheets().values().get(spreadsheetId=event.id, range="'%s'!%s%s" % (event.list, event.display_on_visacka_column, str(i))).execute().get('values')
-        if values_email is not None and values_first_name is not None and values_surname is not None:
-            if values_sex is not None:
-                sex = values_sex[0][0]
-            else:
-                sex = ""
-            if values_display_on_visacka is not None:
-                display_on_visacka = values_display_on_visacka[0][0]
-            else:
-                display_on_visacka = ""
-            if values_username is not None:
-                username = values_username[0][0]
-            else:
-                username = ""
-            r = Registration(email=values_email[0][0], sex=sex, first_name=values_first_name[0][0], surname=values_surname[0][0], username=username, form=event.id, row=i, display_on_visacka=display_on_visacka)
-            db.session.add(r)
-            db.session.commit()
-        else:
+        rows = get_range_from_spreadsheet(event.id, event.list, 'A%s:T%s' % (str(row_num), str(download_at_time)), service)
+        if rows is None:
             break
-        i += 1
-        time.sleep(7) # Slow down to prevent hitting rate limit
+        for row in rows:
+            reg_data = {}
+            i = 0
+            for item in row:
+                reg_data[header[i]] = item
+                i += 1
+            reg = Registration(form=event.id, data=reg_data, row=row_num)
+            db.session.add(reg)
+            db.session.commit()
+            row_num += 1
+    return
 
+# TODO: Rewrite to addapt to new pull method
 @app.cli.command()
 @click.option('--event', required=True, help="Event name")
 @click.option('--noauth_local_webserver', is_flag=True, help='Use this on headless machine')
 @click.option('--logging-level', default='DEBUG')
 def push(event, noauth_local_webserver, logging_level):
-    credentials = get_credentials(CredentialsConfig(noauth_local_webserver, logging_level))
-    http = credentials.authorize(httplib2.Http())
-    service = discovery.build('sheets', 'v4', http=http)
+    service = get_google_service('sheets', 'v4', noauth_local_webserver, logging_level)
     event = Event.query.filter_by(name=event).one()
+    verified_column = event.variable_to_letter('verified')
     for r in Registration.query.filter_by(form=event.id).all():
         payload = {
-            "range": "'%s'!%s%s" % (event.list, event.verified_column, str(r.row)),
+            "range": "'%s'!%s%s" % (event.list, verified_column, str(r.row)),
             "values": [
                 [
                     r.verified_string()
@@ -280,17 +315,17 @@ def request_registration_confirm(**kwargs):
     table_id = Event.query.filter_by(name=kwargs.get('event')).one().id
     s = smtplib.SMTP(kwargs.get('smtp_server'))
     for r in Registration.query.filter_by(form=table_id).all():
-        print("Processing %s" % r.email)
+        print("Processing %s" % r.get_value('email'))
         sendmail(
             s,
             kwargs.get('from_address'),
             kwargs.get('from_name'),
-            r.email,
+            r.get_value('email'),
             kwargs.get('subject'),
             os.path.join(__dir__, 'templates', 'email', 'verify.html'),
             kwargs.get('debug_to'),
             {
-                "verify_link": "https://events.wikimedia.cz/verify/%s/%s/%s" % (table_id, r.email, r.verification_token()),
+                "verify_link": r.verification_link(),
                 "greeting": r.greeting(),
                 "vyplnil": r.switch_on_sex("vyplnil", "vyplnila", "vyplnil(a)")
             }
@@ -309,12 +344,12 @@ def mailall(**kwargs):
     table_id = Event.query.filter_by(name=kwargs.get('event')).one().id
     s = smtplib.SMTP(kwargs.get('smtp_server'))
     for r in Registration.query.filter_by(form=table_id).all():
-        print("Processing %s" % r.email)
+        print("Processing %s" % r.get_value("email"))
         sendmail(
             s,
             kwargs.get('from_address'),
             kwargs.get('from_name'),
-            r.email,
+            r.get_value('email'),
             kwargs.get('subject'),
             kwargs.get('email_file'),
             kwargs.get('debug_to'),
@@ -333,7 +368,7 @@ def generate_visacky(event, subtopic):
     i = 0
     page = 0
     cloudconvert_data = []
-    for r in Registration.query.filter_by(form=event.id).order_by('surname').all():
+    for r in order_query_by_variable(Registration.query.filter_by(form=event.id), "last_name"):
         if i % 9 == 0:
             cloudconvert_data.append({
                 "subtopic": subtopic,
@@ -395,22 +430,22 @@ def generate_prezencka(event, email):
     cloudconvert_api = cloudconvert.Api(config.get('CLOUDCONVERT_API_KEY'))
     event = Event.query.filter_by(name=event).one()
     participants = []
-    for r in Registration.query.filter_by(form=event.id).order_by('surname').all():
+    for r in order_query_by_variable(Registration.query.filter_by(form=event.id), "last_name"):
         if r.allow_realname():
-            surname = r.surname
-            first_name = r.first_name
+            last_name = r.get_value("last_name")
+            first_name = r.get_value("first_name")
         else:
-            surname = "(nechce uvést)"
+            last_name = "(nechce uvést)"
             first_name = "(nechce uvést)"
         if r.allow_username():
-            username = r.username
+            username = r.get_value("username")
         else:
             username = "(nemá/nechce uvést)"
         participants.append({
-            "surname": surname,
+            "surname": last_name, # TODO: Replace surname with last_name in template and fix it here
             "first_name": first_name,
             "username": username,
-            "email": r.email
+            "email": r.get_value("email")
         })
     process = cloudconvert_api.convert({
         "inputformat": "docx",
