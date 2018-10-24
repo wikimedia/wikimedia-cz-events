@@ -252,13 +252,15 @@ def pull(event, skip_rows, download_at_time, noauth_local_webserver, logging_lev
         db.session.commit()
     row_num = 2 + skip_rows
     while True:
-        rows = get_range_from_spreadsheet(event.id, event.list, 'A%s:T%s' % (str(row_num), str(download_at_time)), service)
+        rows = get_range_from_spreadsheet(event.id, event.list, 'A%s:T%s' % (str(row_num), str(row_num + download_at_time)), service)
         if rows is None:
             break
         for row in rows:
             reg_data = {}
             i = 0
             for item in row:
+                if i >= len(header):
+                    break # we are out of header, which always mean notes we won't need
                 reg_data[header[i]] = item
                 i += 1
             reg = Registration(form=event.id, data=reg_data, row=row_num)
