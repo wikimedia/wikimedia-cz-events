@@ -90,20 +90,20 @@ def initdb():
     db.create_all()
 
 column_map = {
-    "timestamp": "Časová značka",
-    "first_name": "Jméno",
-    "last_name": "Příjmení",
-    "sex": "Pohlaví",
-    "email": "E-mailová adresa",
-    "username": "Uživatelské jméno na Wikipedii",
-    "display_on_card": "Na jmenovce bych chtěl/a mít uvedeno",
-    "place": "Místo, kde žijete",
-    "activity": "Moje aktivita na Wikipedii",
-    "expectations": "S čím byste z Wikikonference rád/a odcházel/a? Co byste se rád/a dozvěděl/a?",
-    "newsletter_bool": "Odebíráte náš newsletter?",
-    "newsletter_topics": "Jaké oblasti vás zajímají?",
-    "lunch": "Chcete, abychom vám zajistili oběd?",
-    "other": "Prostor pro cokoli, co byste nám chtěli sdělit",
+    "Časová značka": "timestamp",
+    "Jméno": "first_name",
+    "Příjmení": "last_name",
+    "Pohlaví": "sex",
+    "E-mailová adresa": "email",
+    "Uživatelské jméno na Wikipedii": "username",
+    "Na jmenovce bych chtěl/a mít uvedeno": "display_on_card",
+    "Místo, kde žijete": "place",
+    "Moje aktivita na Wikipedii": "activity",
+    "S čím byste z Wikikonference rád/a odcházel/a? Co byste se rád/a dozvěděl/a?": "expectations",
+    "Odebíráte náš newsletter?": "newsletter_bool",
+    "Jaké oblasti vás zajímají?": "newsletter_topics",
+    "Chcete, abychom vám zajistili oběd?": "lunch",
+    "Prostor pro cokoli, co byste nám chtěli sdělit": "other",
     "verified": "Stav ověření registrace"
 }
 
@@ -136,7 +136,7 @@ class Registration(db.Model):
         self.sheet_data = json.dumps(value)
     
     def get_value(self, variable):
-        return self.data.get(column_map[variable])
+        return self.data.get(variable)
 
     def verified_string(self):
         if self.verified:
@@ -261,7 +261,8 @@ def pull(event, skip_rows, download_at_time, noauth_local_webserver, logging_lev
             for item in row:
                 if i >= len(header):
                     break # we are out of header, which always mean notes we won't need
-                reg_data[header[i]] = item
+                if header[i] in column_map:
+                    reg_data[column_map[header[i]]] = item
                 i += 1
             reg = Registration(form=event.id, data=reg_data, row=row_num)
             db.session.add(reg)
