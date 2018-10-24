@@ -379,6 +379,8 @@ def generate_visacky(event, subtopic):
                 "event": event.name,
                 "year": str(year())
             })
+        if r.get_value('display_on_card') == "":
+            continue # this is a blocker for generating a badge
         cloudconvert_data[page]["big_name_%s" % str(i+1)] = r.big_name()
         cloudconvert_data[page]["small_name_%s" % str(i+1)] = r.small_name()
         i += 1
