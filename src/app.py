@@ -382,8 +382,8 @@ def generate_visacky(event, subtopic):
             page += 1
     names = ["big_name_%s" % x for x in range(1, 10)] + ["small_name_%s" % x for x in range(1, 10)]
     i = 0
-    if not os.path.exists('/var/www/events.wikimedia.cz/deploy/visacky-pdfs'):
-        os.mkdir('/var/www/events.wikimedia.cz/deploy/visacky-pdfs')
+    if not os.path.exists('/var/www/events.wikimedia.cz/deploy/pdfs'):
+        os.mkdir('/var/www/events.wikimedia.cz/deploy/pdfs')
     files = []
     for data in cloudconvert_data:
         for name in names:
@@ -403,7 +403,7 @@ def generate_visacky(event, subtopic):
             },
             "wait": True
         })
-        f = "/var/www/events.wikimedia.cz/deploy/visacky-pdfs/%s.pdf" % str(i)
+        f = "/var/www/events.wikimedia.cz/deploy/pdfs/%s.pdf" % str(i)
         print(f)
         process.download(f)
         files.append(f.replace('/var/www/', 'https://').replace('/deploy', ''))
@@ -420,8 +420,8 @@ def generate_visacky(event, subtopic):
         'save': True
     })
     process.wait()
-    process.download('/var/www/events.wikimedia.cz/deploy/visacky-pdfs/all.pdf')
-    click.echo('Browse to https://events.wikimedia.cz/visacky-pdfs/all.pdf and download your visackas')
+    process.download('/var/www/events.wikimedia.cz/deploy/pdfs/visacky.pdf')
+    click.echo('Browse to https://events.wikimedia.cz/pdfs/visacky.pdf and download your visackas')
 
 @app.cli.command()
 @click.option('--event', required=True, help='Event name')
@@ -466,8 +466,8 @@ def generate_prezencka(event, email):
         },
         "wait": True
     })
-    process.download('/var/www/events.wikimedia.cz/deploy/visacky-pdfs/prezencka.pdf')
-    click.echo('Browse to https://events.wikimedia.cz/visacky-pdfs/prezencka.pdf and download your visackas')
+    process.download('/var/www/events.wikimedia.cz/deploy/pdfs/prezencka.pdf')
+    click.echo('Browse to https://events.wikimedia.cz/pdfs/prezencka.pdf and download your visackas')
 
 
 def confirm_registration(event, email, token):
