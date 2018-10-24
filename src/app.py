@@ -82,6 +82,11 @@ app.config.update(config)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+@app.cli.command()
+def initdb():
+    db.drop_all()
+    db.create_all()
+
 class Registration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), nullable=False)
