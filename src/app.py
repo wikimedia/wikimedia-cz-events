@@ -295,9 +295,7 @@ def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=N
     msg['Subject'] = subject
     msg['From'] = "%s <%s>" % (from_name, from_address)
     msg['To'] = to
-    html = open(mail_text_file).read()
-    for variable in variables:
-        html = html.replace('{{%s}}' % variable.upper(), variables[variable])
+    html = render_template(mail_text_file, **variables)
     html_part = MIMEText(html, 'html')
     msg.attach(html_part)
     if debug_to is not None:
@@ -329,7 +327,7 @@ def mail_participants(**kwargs):
             kwargs.get('from_name'),
             r.get_value('email'),
             subject,
-            os.path.join(__dir__, 'templates', 'email', '%s.html' % kwargs.get('mail_type')),
+            os.path.join('email', '%s.html' % kwargs.get('mail_type')),
             kwargs.get('debug_to'),
             {
                 "verify_link": r.verification_link(),
