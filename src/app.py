@@ -317,6 +317,7 @@ def mail_participants(**kwargs):
     s = smtplib.SMTP(kwargs.get('smtp_server'))
     subjects = {
         "verify": "[Wikikonference] Wikikonference se blíží, plánujete se zúčastnit?",
+        "confirm": "[Wikikonference] Potvrzení registrace"
     }
     subject = subjects.get(kwargs.get('mail_type'), kwargs.get('subject', '[Wikikonference] Informace pro účastníky'))
     for r in Registration.query.filter_by(form=table_id).all():
@@ -332,7 +333,11 @@ def mail_participants(**kwargs):
             {
                 "verify_link": r.verification_link(),
                 "greeting": r.greeting(),
-                "vyplnil": r.switch_on_sex("vyplnil", "vyplnila", "vyplnil(a)")
+                "vyplnil": r.switch_on_sex("vyplnil", "vyplnila", "vyplnil(a)"),
+                "event": kwargs.get('event'),
+                "year": year(),
+                "data": r.data,
+                "from_email": kwargs.get('from_address'),
             }
         )
     s.quit()
