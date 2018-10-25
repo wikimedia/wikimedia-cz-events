@@ -379,7 +379,7 @@ def generate_badges(event, subtopic):
             "inputformat": "docx",
             "outputformat": "pdf",
             "input": "download",
-            "file": "https://events.wikimedia.cz/static/visacky.docx",
+            "file": "https://events.wikimedia.cz/static/badges.docx",
             "converteroptions": {
                 "page_range": None,
                 "optimize_print": True,
@@ -438,7 +438,7 @@ def generate_attendee_list(event, email):
         "inputformat": "docx",
         "outputformat": "pdf",
         "input": "download",
-        "file": "https://events.wikimedia.cz/static/prezencka.docx",
+        "file": "https://events.wikimedia.cz/static/attendee_list.docx",
         "converteroptions": {
             "page_range": None,
             "optimize_print": True,
