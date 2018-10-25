@@ -306,17 +306,21 @@ def sendmail(s, from_address, from_name, to, subject, mail_text_file, debug_to=N
         actual_mail = to
     s.sendmail(from_address, actual_mail, msg.as_string())
 
-
 @app.cli.command()
 @click.option('--event', required=True, help='Event name')
-@click.option('--subject', default="[Wikikonference] Zúčastníte se Wikikonference?", help='Subject of your mails', show_default=True)
+@click.option('--subject', help='Subject of your mails; default differ per mail type')
 @click.option('--from-address', default='wikikonference@wikimedia.cz', help='Address the mails will be coming from', show_default=True)
 @click.option('--from-name', default='Wikikonference', help='Display name that will see participants next to from address', show_default=True)
+@click.option('--mail-type', required=True, help='Mail you want to distribute')
 @click.option('--smtp-server', default='smtp-relay.gmail.com', help='Hostname of your mail server', show_default=True)
 @click.option('--debug-to', default=None, help='[debug] This will force all mails to come to specified mailbox')
-def request_registration_confirm(**kwargs):
+def mail_participants(**kwargs):
     table_id = Event.query.filter_by(name=kwargs.get('event')).one().id
     s = smtplib.SMTP(kwargs.get('smtp_server'))
+    subjects = {
+        "verify": "[Wikikonference] Wikikonference se blíží, plánujete se zúčastnit?",
+    }
+    subject = subjects.get(kwargs.get('mail_type'), kwargs.get('subject', '[Wikikonference] Informace pro účastníky'))
     for r in Registration.query.filter_by(form=table_id).all():
         print("Processing %s" % r.get_value('email'))
         sendmail(
@@ -324,40 +328,13 @@ def request_registration_confirm(**kwargs):
             kwargs.get('from_address'),
             kwargs.get('from_name'),
             r.get_value('email'),
-            kwargs.get('subject'),
-            os.path.join(__dir__, 'templates', 'email', 'verify.html'),
+            subject,
+            os.path.join(__dir__, 'templates', 'email', '%s.html' % kwargs.get('mail_type')),
             kwargs.get('debug_to'),
             {
                 "verify_link": r.verification_link(),
                 "greeting": r.greeting(),
                 "vyplnil": r.switch_on_sex("vyplnil", "vyplnila", "vyplnil(a)")
-            }
-        )
-    s.quit()
-
-@app.cli.command()
-@click.option('--event', required=True, help='Event name')
-@click.option('--subject', default="[Wikikonference] Informace pro účastníky", help='Subject of your mails', show_default=True)
-@click.option('--from-address', default='wikikonference@wikimedia.cz', help='Address the mails will be coming from', show_default=True)
-@click.option('--from-name', default='Wikikonference', help='Display name that will see participants next to from address', show_default=True)
-@click.option('--email-file', required=True, help='Path to HTML that will be distributed to your participants via mail', show_default=True)
-@click.option('--smtp-server', default='smtp-relay.gmail.com', help='Hostname of your mail server', show_default=True)
-@click.option('--debug-to', default=None, help='[debug] This will force all mails to come to specified mailbox')
-def mailall(**kwargs):
-    table_id = Event.query.filter_by(name=kwargs.get('event')).one().id
-    s = smtplib.SMTP(kwargs.get('smtp_server'))
-    for r in Registration.query.filter_by(form=table_id).all():
-        print("Processing %s" % r.get_value("email"))
-        sendmail(
-            s,
-            kwargs.get('from_address'),
-            kwargs.get('from_name'),
-            r.get_value('email'),
-            kwargs.get('subject'),
-            kwargs.get('email_file'),
-            kwargs.get('debug_to'),
-            {
-                "greeting": r.greeting()
             }
         )
     s.quit()
