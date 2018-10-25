@@ -35,7 +35,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-# For visacky generation
+# For generation of badges and attendee list
 import cloudconvert
 
 # For communication with Google API
@@ -345,7 +345,7 @@ def mail_participants(**kwargs):
 @app.cli.command()
 @click.option('--event', required=True, help='Event name')
 @click.option('--subtopic', default='Wikimedia Česká republika', help='Subtopic of your event')
-def generate_visacky(event, subtopic):
+def generate_badges(event, subtopic):
     cloudconvert_api = cloudconvert.Api(config.get('CLOUDCONVERT_API_KEY'))
     event = Event.query.filter_by(name=event).one()
     i = 0
@@ -407,13 +407,13 @@ def generate_visacky(event, subtopic):
         'save': True
     })
     process.wait()
-    process.download('/var/www/events.wikimedia.cz/deploy/pdfs/visacky.pdf')
-    click.echo('Browse to https://events.wikimedia.cz/pdfs/visacky.pdf and download your visackas')
+    process.download('/var/www/events.wikimedia.cz/deploy/pdfs/badges.pdf')
+    click.echo('Browse to https://events.wikimedia.cz/pdfs/badges.pdf and download your badges')
 
 @app.cli.command()
 @click.option('--event', required=True, help='Event name')
-@click.option('--email', default="info@wikimedia.cz", help='E-mail you want to be on prezenčka')
-def generate_prezencka(event, email):
+@click.option('--email', default="info@wikimedia.cz", help='E-mail you want to be on the attendee list as contact one')
+def generate_attendee_list(event, email):
     cloudconvert_api = cloudconvert.Api(config.get('CLOUDCONVERT_API_KEY'))
     event = Event.query.filter_by(name=event).one()
     participants = []
@@ -453,8 +453,8 @@ def generate_prezencka(event, email):
         },
         "wait": True
     })
-    process.download('/var/www/events.wikimedia.cz/deploy/pdfs/prezencka.pdf')
-    click.echo('Browse to https://events.wikimedia.cz/pdfs/prezencka.pdf and download your visackas')
+    process.download('/var/www/events.wikimedia.cz/deploy/pdfs/attendee_list.pdf')
+    click.echo('Browse to https://events.wikimedia.cz/pdfs/attendee_list.pdf and download your attendee list')
 
 
 def confirm_registration(event, email, token):
