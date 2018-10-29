@@ -270,7 +270,6 @@ def pull(event, skip_rows, download_at_time, noauth_local_webserver, logging_lev
             row_num += 1
     return
 
-# TODO: Rewrite to addapt to new pull method
 @app.cli.command()
 @click.option('--event', required=True, help="Event name")
 @click.option('--noauth_local_webserver', is_flag=True, help='Use this on headless machine')
