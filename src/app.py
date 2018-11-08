@@ -104,7 +104,10 @@ column_map = {
     "Jaké oblasti vás zajímají?": "newsletter_topics",
     "Chcete, abychom vám zajistili oběd?": "lunch",
     "Prostor pro cokoli, co byste nám chtěli sdělit": "other",
-    "verified": "Stav ověření registrace"
+    "Stav ověření registrace": "verified",
+    "Chcete si objednat WikiTričko?": "tshirt",
+    "Velikost": "tshirt_size",
+    "Střih": "tshirt_type",
 }
 
 def order_query_by_variable(query, variable):
@@ -333,6 +336,8 @@ def mail_participants(**kwargs):
                 "verify_link": r.verification_link(),
                 "greeting": r.greeting(),
                 "vyplnil": r.switch_on_sex("vyplnil", "vyplnila", "vyplnil(a)"),
+                "objednal": r.switch_on_sex("objednal", "objednala", "objednal(a)"),
+                "Objednal": r.switch_on_sex("Objednal", "Objednala", "Objednal(a)"),
                 "event": kwargs.get('event'),
                 "year": year(),
                 "data": r.data,
