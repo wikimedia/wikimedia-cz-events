@@ -2,9 +2,9 @@
 <p>tímto potvrzujeme Vaši registraci na Wikikonferenci 2018, která se koná 1. prosince 2018 v Olomouci. Wikikonference samotná začíná v 10:00, registrace probíhá od 09:00. {% if data.lunch == "Ano" %}Součástí Vaší registrace je oběd.{% else %}{% if data.lunch == "Ano, vegetariánský" %}Součástí Vaší registrace je vegetariánský oběd.{% else %}Součástí Vaší registrace není oběd. Chcete-li, abychom Vám oběd zajistili, ozvěte se nám do 26. listopadu na {{ from_email }}, Vaši registraci upravíme. {% endif %}{% endif %}</p>
 
 {% if data.tshirt == "Ano" %}
-<p>V rámci Vaší registrace jste si {{ objednal }} {{ data.tshirt_type.lower() }} tričko velikosti {{ data.tshirt_size }}. Pokud chcete jiné tričko, ozvěte se nám na {{ from_email }} do 21. listopadu, Vaši registraci upravíme. Tričko Vám bude prodáno na registračním pultu za přibližně 250 Kč (záleží na přesném počtu objednaných triček).</p>
+<p>V rámci Vaší registrace jste si {{ objednal }} {{ data.tshirt_type.lower() }} tričko velikosti {{ data.tshirt_size }}. Pokud chcete jiné tričko, ozvěte se nám na {{ from_email }} do 21. listopadu, Vaši registraci upravíme. Tričko Vám bude prodáno na registračním pultu za přibližně 250 Kč (záleží na přesném počtu objednaných triček). Náhled trička je na <a href="https://drive.google.com/open?id=1R49ZbEPJWGP9HRfpl5Ummgg2CGB_L2W-">této stránce</a>.</p>
 {% else %}
-<p>Tričko jste si ne{{ objednal }}. Rozmyslíte-li si to, napište nám na {{from_email}} (objednávka triček bude ukončena k 21. listopadu 2018).</p>
+<p>Tričko jste si ne{{ objednal }}. Rozmyslíte-li si to, napište nám na {{from_email}} (objednávka triček bude ukončena k 21. listopadu 2018). Cena trička je 250 Kč (závisí na přesném počtu objednaných triček) a jeho náhled je na <a href="https://drive.google.com/open?id=1R49ZbEPJWGP9HRfpl5Ummgg2CGB_L2W-">této stránce.</a></p>
 {% endif %}
 
 <h1>Rekapitulace registrace</h1>
@@ -15,13 +15,14 @@
     <li>E-mailová adresa: {{data.email}}</li>
     <li>Údaje zobrazené na visačce: {{data.display_on_card}}</li>
     <li>Bude pro Vás zajištěn oběd?: {{data.lunch}}</li>
-    <li>{{Objednal}} jste si tričko?: {{data.tshirt}}, {% if data.tshirt == "Ano" %}{{data.tshirt_size}}{% endif %}</li>
+    <li>{{Objednal}} jste si tričko?: {{data.tshirt}}{% if data.tshirt == "Ano" %}, {{data.tshirt_size}}{% endif %}</li>
 </ul>
 
 <p>
+
     Těšíme se na Vaši účast, <br>
-    Martin Urbanec<br>
+    <strong style="color:rgb(153,0,0);font-family:Arial;font-size:11pt">Martin Urbanec</strong><br>
     <a href="mailto:{{from_email}}">{{from_email}}</a><br>
-    Wikimedia Česká republika
+    <strong style="color:rgb(34,34,34);background-color:transparent;font-family:Arial;font-size:11pt">Wikimedia Česká republika</strong></span><br >
+    <img src="https://drive.google.com/a/wikimedia.cz/uc?id=16oJ485o71OEX62sNx2pi0AsqTrn1S3Zp&export=download" alt="Logo Wikimedia ČR" width=200 height=45>
 </p>
-<img src="https://wiki.wikimedia.cz/images/wmcz_logo.png" alt="Logo WMCZ">
