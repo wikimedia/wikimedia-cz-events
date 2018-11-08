@@ -122,6 +122,7 @@ class Registration(db.Model):
     form = db.Column(db.String(255), nullable=False)
     sheet_data = db.Column(db.Text, nullable=False, default={})
     verified = db.Column(db.Boolean, nullable=False, default=False)
+    confirmed = db.Column(db.Boolean, nullable=False, default=False)
     row = db.Column(db.Integer, nullable=False, default=-1)
 
     def verification_link(self):
@@ -324,6 +325,11 @@ def mail_participants(**kwargs):
     subject = subjects.get(kwargs.get('mail_type'), kwargs.get('subject', '[Wikikonference] Informace pro účastníky'))
     for r in Registration.query.filter_by(form=table_id).all():
         print("Processing %s" % r.get_value('email'))
+        if kwargs.get('mail_type') == "confirm":
+            if r.confirmed == True:
+                continue
+            r.confirmed = True
+            db.session.commit()
         sendmail(
             s,
             kwargs.get('from_address'),
