@@ -369,7 +369,7 @@ def generate_badges(event, subtopic):
                 "event": event.name,
                 "year": str(year())
             })
-        if r.get_value('display_on_card') == "":
+        if r.get_value('display_on_card') == "" or r.get_value('display_on_card') == "nepřeji si mít žádnou visačku":
             continue # this is a blocker for generating a badge
         cloudconvert_data[page]["big_name_%s" % str(i+1)] = r.big_name()
         cloudconvert_data[page]["small_name_%s" % str(i+1)] = r.small_name()
