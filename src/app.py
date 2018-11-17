@@ -246,6 +246,11 @@ def get_range_from_spreadsheet(table_id, list, range, service):
 def pull(event, skip_rows, download_at_time, noauth_local_webserver, logging_level):
     service = get_google_service('sheets', 'v4', noauth_local_webserver, logging_level)
     event = Event.query.filter_by(name=event).one()
+    confirmed_rows_tmp = Registration.query.filter_by(form=event.id, confirmed=True).values('row')
+    confirmed_rows = []
+    for confirmed_row in confirmed_rows_tmp:
+        confirmed_rows.append(confirmed_row[0])
+    del(confirmed_rows_tmp)
     Registration.query.filter_by(form=event.id).delete()
     db.session.commit()
     header = get_range_from_spreadsheet(event.id, event.list, 'A1:T1', service)[0]
@@ -268,7 +273,8 @@ def pull(event, skip_rows, download_at_time, noauth_local_webserver, logging_lev
                 if header[i] in column_map:
                     reg_data[column_map[header[i]]] = item
                 i += 1
-            reg = Registration(form=event.id, data=reg_data, row=row_num)
+            confirmed = row_num in confirmed_rows
+            reg = Registration(form=event.id, data=reg_data, row=row_num, confirmed=confirmed)
             db.session.add(reg)
             db.session.commit()
             row_num += 1
