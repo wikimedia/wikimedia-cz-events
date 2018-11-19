@@ -149,8 +149,14 @@ class Registration(db.Model):
             return "Neověřeno"
 
     def greeting(self):
+        if os.path.exists(os.path.join(__dir__, "..", "support", "names-cases.json")):
+            cases = json.loads(open(os.path.join(__dir__, "..", "support", "names-cases.json")).read())
+        else:
+            cases = {}
+        last_name = self.get_value('last_name')
+        last_name = cases.get(last_name, last_name)
         if self.get_value("sex") == "Muž":
-            return "Vážený pane %s," % self.get_value('last_name')
+            return "Vážený pane %s," % last_name
         elif self.get_value("sex") == "Žena":
             return "Vážená paní %s," % self.get_value('last_name')
         else:

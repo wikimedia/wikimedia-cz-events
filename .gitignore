@@ -116,3 +116,4 @@ client_secret.json
 google_creds.json
 
 /.vscode
+/support/names.json
