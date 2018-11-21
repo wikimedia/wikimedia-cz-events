@@ -1,3 +1,0 @@
-SQLALCHEMY_DATABASE_URI: mysql://user:password@127.0.0.1/event_tools
-SECRET_KEY: top_secret_string
-CLOUDCONVERT_API_KEY: your api key for cloudconvert.com, used for generating of visacky

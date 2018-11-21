@@ -1,0 +1,13 @@
+{% extends "admin/change_form.html" %}
+{% block extrahead %}{{block.super}}
+<script type="text/javascript" src="/static/admin/event.js"></script>
+{% endblock extrahead %}
+
+{% block form_top %}
+<div style="float:right">
+    <h2>Actions</h2>
+    <ul>
+        <li><a id="pull-event" href="#">Pull</a></li>
+    </ul>
+</div>
+{% endblock %}
