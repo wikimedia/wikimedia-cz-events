@@ -277,6 +277,8 @@ def pull(event, skip_rows, download_at_time, noauth_local_webserver, logging_lev
                 if i >= len(header):
                     break # we are out of header, which always mean notes we won't need
                 if header[i] in column_map:
+                    if column_map[header[i]] in reg_data:
+                        continue # T207896
                     reg_data[column_map[header[i]]] = item
                 i += 1
             confirmed = row_num in confirmed_rows
