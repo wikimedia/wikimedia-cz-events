@@ -12,6 +12,5 @@ pip install -U -r support/requirements.txt
 cd events
 python manage.py migrate
 python manage.py collectstatic --noinput
-python manage.py compilemessages
 cd ../
 touch deploy/reload
