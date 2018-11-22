@@ -38,6 +38,8 @@ class Event(models.Model):
         mails = []
         html_template = Template(self.mailtext_set.get(mail_type=mail_type).text)
         for reg in self.registration_set.all():
+            if (mail_type == "confirm" and reg.confirmed) or (mail_type == "verified" and reg.verified):
+                continue
             c_dict = {
                 'greeting': reg.greeting()
             }
