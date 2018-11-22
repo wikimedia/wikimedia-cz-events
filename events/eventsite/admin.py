@@ -29,9 +29,17 @@ class MailTextAdmin(admin.ModelAdmin):
         model = models.MailText
 admin.site.register(models.MailText, MailTextAdmin)
 
+
+def confirm_registrations(modeladmin, request, queryset):
+    queryset.update(confirmed=True)
+
+def verify_registrations(modeladmin, request, queryset):
+    queryset.update(verified=True)
+
 class RegistrationAdmin(admin.ModelAdmin):
     readonly_fields = ('data', )
     list_display = ('full_name', 'event', 'verified', 'confirmed')
+    actions = (confirm_registrations, verify_registrations)
     class Meta:
         model = models.Registration
 admin.site.register(models.Registration, RegistrationAdmin)
