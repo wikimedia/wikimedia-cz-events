@@ -84,8 +84,6 @@ class Event(models.Model):
             if mail_type == "confirm":
                 reg.confirmed = True
                 reg.save()
-
-            break
         return send_mass_html_mail(mails)
     
     def pull(self):
