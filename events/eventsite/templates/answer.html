@@ -2,7 +2,7 @@
 {% load widget_tweaks %}
 {% block body %}
 <div class="container">
-    <h1>Zodpovězte, prosím, pár otázek</h1>
+    <h1>Ověření registrace</h1>
     <form class="form-horizontal" method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}
