@@ -151,7 +151,7 @@ class Registration(models.Model):
             grammar_last_name = self.data.get('last_name')
         if self.data.get('sex') == "Muž":
             return "Vážený pane %s," % grammar_last_name
-        elif self.data.get('sex') == "Zena":
+        elif self.data.get('sex') == "Žena":
             return "Vážená paní %s," % self.data.get('last_name')
     
     def verify_link(self):
