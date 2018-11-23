@@ -103,7 +103,7 @@ class Event(models.Model):
 class Registration(models.Model):
     event = models.ForeignKey('Event', on_delete=models.CASCADE)
     row = models.IntegerField()
-    data = JSONField()
+    data = JSONField(default={})
     verified = models.BooleanField(default=False)
     confirmed = models.BooleanField(default=False)
 
