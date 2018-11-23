@@ -45,9 +45,6 @@ class Answer(models.Model):
 
     def __str__(self):
         return "Answer to %s" % self.question
-    
-    def registration(self):
-        return self.registration_set.get() # TODO: There should be many to one relationship instead
 
 class Event(models.Model):
     google_table = models.CharField(max_length=255, null=False)
