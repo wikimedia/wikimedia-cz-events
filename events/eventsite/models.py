@@ -11,10 +11,36 @@ MAIL_TYPES = (
     ('verify', 'Verify registration')
 )
 
+QUESTION_TYPES = (
+    ('open', 'Open-ended question'),
+    ('close', 'Close-ended question'),
+)
+
 class MailText(models.Model):
     event = models.ForeignKey('Event', on_delete=models.CASCADE)
     mail_type = models.CharField(max_length=255, choices=MAIL_TYPES)
     text = models.TextField(help_text="This has same syntax like Django's templates. You can use any data from registration JSON here", null=False, blank=True)
+
+class Question(models.Model):
+    name = models.CharField(max_length=255, null=False)
+    type = models.CharField(max_length=255, null=False, choices=QUESTION_TYPES)
+    possible_answers = JSONField(default=[])
+
+    def get_choices(self):
+        res = []
+        for i, possible_answer in enumerate(self.possible_answers):
+            res.append(("answer_%s" % i, possible_answer))
+        return res
+
+    def __str__(self):
+        return self.name
+
+class Answer(models.Model):
+    question = models.ForeignKey('Question', on_delete=models.CASCADE)
+    answer = models.CharField(max_length=255, null=False, blank=True)
+
+    def __str__(self):
+        return "Answer to %s" % self.question
 
 class Event(models.Model):
     google_table = models.CharField(max_length=255, null=False)
@@ -23,6 +49,7 @@ class Event(models.Model):
     header = JSONField(default=[])
     skip_rows = models.IntegerField(default=0)
     from_mail = models.CharField(max_length=255, null=False, blank=True) # TODO: Validate mail address here
+    questions = models.ManyToManyField('Question', blank=True)
     successfully_confirmed_url = models.CharField(max_length=255, null=False, blank=True)
     invalid_token_url = models.CharField(max_length=255, null=False, blank=True)
     already_confirmed_url = models.CharField(max_length=255, null=False, blank=True)
@@ -106,6 +133,7 @@ class Registration(models.Model):
     data = JSONField(default={})
     verified = models.BooleanField(default=False)
     confirmed = models.BooleanField(default=False)
+    answers = models.ManyToManyField('Answer')
 
     def __str__(self):
         return '%s, %s' % (self.full_name(), self.event)
@@ -120,7 +148,7 @@ class Registration(models.Model):
             return "Vážená paní %s," % self.data.get('last_name')
     
     def verify_link(self):
-        return 'https://events.wikimedia.cz/verify?id=%s&token=%s' % (self.id, self.verify_token())
+        return 'https://events.wikimedia.cz/verify/%d/%s' % (self.id, self.verify_token())
     
     def verify_token(self):
         return hashlib.md5((self.data.get('email').encode('utf-8') + settings.SECRET_KEY.encode('utf-8'))).hexdigest()

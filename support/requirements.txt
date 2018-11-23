@@ -1,6 +1,7 @@
 # just our usual stuff
 Django==2.1.3
 jsonfield
+django-widget-tweaks
 
 # we'll presume mysql as the database
 mysqlclient

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block body %}
+<div class="container">
+    <h1>Zodpovězte, prosím, pár otázek</h1>
+    <form class="form-horizontal" method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+        {{ field.errors }}
+        {{ field.label_tag }} {{field|add_class:"form-control"}}
+        {% endfor %}        
+        <input class="form-control" type="submit" value="Odeslat a potvrdit registraci">
+    </form>
+</div>
+{% endblock body %}

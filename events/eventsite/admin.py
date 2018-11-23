@@ -5,6 +5,18 @@ from django.http import HttpResponseRedirect
 from django.contrib import messages
 import simplejson as json
 
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'type', 'possible_answers')
+    class Meta:
+        model = models.Question
+admin.site.register(models.Question, QuestionAdmin)
+
+class AnswerAdmin(admin.ModelAdmin):
+    list_display = ('question', 'answer')
+    class Meta:
+        model = models.Answer
+admin.site.register(models.Answer, AnswerAdmin)
+
 class EventAdmin(admin.ModelAdmin):
     exclude = ('header', )
     list_display = ('name', 'skip_rows', 'google_table', 'list_name')
