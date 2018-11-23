@@ -19,7 +19,8 @@ class QuestionAdmin(admin.ModelAdmin):
 admin.site.register(models.Question, QuestionAdmin)
 
 class AnswerAdmin(admin.ModelAdmin):
-    list_display = ('question', 'answer')
+    list_display = ('question', 'answer', 'registration')
+    readonly_fields = ('registration', )
     class Meta:
         model = models.Answer
 admin.site.register(models.Answer, AnswerAdmin)
