@@ -7,6 +7,7 @@ import simplejson as json
 
 class EventAdmin(admin.ModelAdmin):
     exclude = ('header', )
+    list_display = ('name', 'skip_rows', 'google_table', 'list_name')
 
     def get_urls(self):
         urls = super().get_urls()
