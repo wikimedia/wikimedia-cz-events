@@ -18,7 +18,7 @@ class MailText(models.Model):
 
 class Event(models.Model):
     google_table = models.CharField(max_length=255, null=False)
-    name = models.CharField(max_length=255, null=False, blank=True)
+    name = models.CharField(max_length=255, null=False)
     list_name = models.CharField(max_length=255, null=False, blank=True)
     header = JSONField(default=[])
     skip_rows = models.IntegerField(default=0)
