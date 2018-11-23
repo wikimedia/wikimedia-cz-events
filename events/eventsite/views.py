@@ -55,7 +55,7 @@ def verify(request, id, token):
     reg = Registration.objects.get(id=int(id))
     if len(reg.event.questions.all()) != len(reg.answers.all()):
         return HttpResponseRedirect(reverse('answer', kwargs={'id': reg.id, 'token': token}))
-    if reg.confirmed:
+    if reg.verified:
         return HttpResponseRedirect(reg.event.already_confirmed_url)
     if reg.verify_token() == token:
         reg.verified = True
