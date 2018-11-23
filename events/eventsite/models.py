@@ -16,6 +16,10 @@ QUESTION_TYPES = (
     ('close', 'Close-ended question'),
 )
 
+class SurnameCases(models.Model):
+    nominative = models.CharField(max_length=255, null=False, blank=True)
+    vocative = models.CharField(max_length=255, null=False, blank=True)
+
 class MailText(models.Model):
     event = models.ForeignKey('Event', on_delete=models.CASCADE)
     mail_type = models.CharField(max_length=255, choices=MAIL_TYPES)
@@ -141,8 +145,12 @@ class Registration(models.Model):
         return '%s %s' % (self.data.get('first_name'), self.data.get('last_name'))
     
     def greeting(self):
+        try:
+            grammar_last_name = SurnameCases.objects.get(nominative=self.data.get('last_name')).vocative
+        except SurnameCases.DoesNotExist:
+            grammar_last_name = self.data.get('last_name')
         if self.data.get('sex') == "Muž":
-            return "Vážený pane %s," % self.data.get('last_name')
+            return "Vážený pane %s," % grammar_last_name
         elif self.data.get('sex') == "Zena":
             return "Vážená paní %s," % self.data.get('last_name')
     

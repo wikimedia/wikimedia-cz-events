@@ -5,6 +5,13 @@ from django.http import HttpResponseRedirect
 from django.contrib import messages
 import simplejson as json
 
+class SurnameCasesAdmin(admin.ModelAdmin):
+    list_display = ('nominative', 'vocative')
+
+    class Meta:
+        model = models.SurnameCases
+admin.site.register(models.SurnameCases, SurnameCasesAdmin)
+
 class QuestionAdmin(admin.ModelAdmin):
     list_display = ('name', 'type', 'possible_answers')
     class Meta:
