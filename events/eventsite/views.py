@@ -13,7 +13,7 @@ def verify(request):
     if reg.confirmed:
         return HttpResponseRedirect(reg.event.already_confirmed_url)
     if reg.verify_token() == token:
-        reg.confirmed = True
+        reg.verified = True
         reg.save()
         return HttpResponseRedirect(reg.event.successfully_confirmed_url)
     else:
