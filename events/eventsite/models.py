@@ -68,7 +68,8 @@ class Event(models.Model):
             if (mail_type == "confirm" and reg.confirmed) or (mail_type == "verified" and reg.verified):
                 continue
             c_dict = {
-                'greeting': reg.greeting()
+                'greeting': reg.greeting(),
+                "verify_link": reg.verify_link(),
             }
             for key in reg.data:
                 c_dict[key] = reg.data[key]
