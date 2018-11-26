@@ -159,3 +159,10 @@ class Registration(models.Model):
     
     def verify_token(self):
         return hashlib.md5((self.data.get('email').encode('utf-8') + settings.SECRET_KEY.encode('utf-8'))).hexdigest()
+
+    @staticmethod
+    def from_token(token):
+        for r in Registration.objects.all():
+            if r.verify_token() == token:
+                return r
+        return None

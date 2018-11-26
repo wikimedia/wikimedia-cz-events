@@ -10,7 +10,7 @@ def index(request):
     return render(request, 'index.html')
 
 def answer(request, id, token):
-    reg = Registration.objects.get(id=id)
+    reg = Registration.from_token(token)
     if request.method == 'POST':
         f = QuestionsForm(request.POST, registration=reg)
         if f.is_valid():
@@ -52,7 +52,7 @@ class QuestionsForm(forms.Form):
 
 
 def verify(request, id, token):
-    reg = Registration.objects.get(id=int(id))
+    reg = Registration.from_token(token)
     if len(reg.event.questions.all()) != len(reg.answers.all()):
         return HttpResponseRedirect(reverse('answer', kwargs={'id': reg.id, 'token': token}))
     if reg.verified:
