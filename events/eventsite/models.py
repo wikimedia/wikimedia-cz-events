@@ -98,6 +98,12 @@ class Event(models.Model):
             confirmed_rows.append(reg.row)
         del(confirmed_regs)
 
+        verified_regs = self.registration_set.filter(verified=True)
+        verified_rows = {}
+        for reg in verified_regs:
+            verified_rows[reg.row] = reg.answers
+        del(verified_regs)
+
         self.registration_set.all().delete()
 
         header = get_range_from_spreadsheet(self.google_table, self.list_name, 'A1:T1', service)[0]
@@ -125,7 +131,14 @@ class Event(models.Model):
                         reg_data[column_map[header[i]]] = item
                     i += 1
                 confirmed = row_num in confirmed_rows
-                reg = Registration.objects.create(event=self, data=reg_data, row=row_num, confirmed=confirmed)
+                verified = row_num in verified_rows
+                answers = verified_rows.get(row_num)
+                if answers is None:
+                    answers = []
+                else:
+                    answers = answers.all()
+                reg = Registration.objects.create(event=self, data=reg_data, row=row_num, confirmed=confirmed, verified=verified)
+                reg.answers.set(answers)
                 reg.save()
                 row_num += 1
 
