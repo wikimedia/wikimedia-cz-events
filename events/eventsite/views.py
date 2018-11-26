@@ -34,6 +34,8 @@ class QuestionsForm(forms.Form):
         self._registration = kwargs.pop('registration')
         super(QuestionsForm, self).__init__(*args, **kwargs)
         for question in self._registration.event.questions.all():
+            if question.name == "Volba jídla" and self._registration.data.get('lunch') == "Ne":
+                continue
             if question.type == "open":
                 self.fields[question.name] = forms.CharField()
             elif question.type == "close":
