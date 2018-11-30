@@ -172,6 +172,22 @@ class Registration(models.Model):
     
     def verify_token(self):
         return hashlib.md5((self.data.get('email').encode('utf-8') + settings.SECRET_KEY.encode('utf-8'))).hexdigest()
+    
+    def big_name(self):
+        if self.data.get("display_on_card") == "občanské jméno" or self.data.get("display_on_card") == "občanské jméno i uživatelské jméno na Wikipedii":
+            return "%s %s" % (self.data.get('first_name'), self.data.get('last_name'))
+        elif self.data.get("display_on_card") == "uživatelské jméno na Wikipedii":
+            username = self.data.get("username")[0].upper() + self.data.get("username")[1:]
+            return "Wikipedista:%s" % username
+        else:
+            return " "
+    
+    def small_name(self):
+        if self.data.get("display_on_card") == "občanské jméno i uživatelské jméno na Wikipedii":
+            username = self.data.get("username")[0].upper() + self.data.get("username")[1:]
+            return "Wikipedista:%s" % username
+        else:
+            return " "
 
     @staticmethod
     def from_token(token):

@@ -9,3 +9,5 @@ mysqlclient
 google-api-python-client
 oauth2client
 simplejson
+
+cloudconvert
