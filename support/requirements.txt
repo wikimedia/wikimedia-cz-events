@@ -1,0 +1,11 @@
+flask
+pyyaml
+requests
+simplejson
+Flask-JSONLocale
+Flask-SQLAlchemy
+SQLAlchemy-Utils
+Flask-Migrate
+mysqlclient
+google-api-python-client
+oauth2client

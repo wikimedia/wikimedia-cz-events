@@ -110,11 +110,8 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
-config.yaml
-client_secret.json
-/deploy
-google_creds.json
-
 /.vscode
-/support/names-cases.json
-/events/events/settings.py
+/src/config.yaml
+/credentials/*
+!/credentials/.gitkeep
+/src/client_secret.json
