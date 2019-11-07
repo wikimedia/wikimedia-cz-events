@@ -26,6 +26,7 @@ import click
 import googleapi
 
 app = Flask(__name__, static_folder='../static')
+application = app
 
 # Load configuration from YAML file
 __dir__ = os.path.dirname(__file__)
