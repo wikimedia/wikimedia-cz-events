@@ -115,3 +115,4 @@ dmypy.json
 /credentials/*
 !/credentials/.gitkeep
 /src/client_secret.json
+/reload
