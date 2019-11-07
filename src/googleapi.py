@@ -95,4 +95,4 @@ def confirm_participant(table_id, mail, confirmed=True, sheet="Účastníci"):
 	}).execute()
 
 if __name__ == "__main__":
-	confirm_participant("1T7EcedxI8NZ9yM_iKMSB1opsPiOlD_bWyXXH6jEiJyQ", "martin.urbanec@wikimedia.cz")
+	get_credentials()
