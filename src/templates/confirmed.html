@@ -6,5 +6,9 @@
         Těšíme se na Vaši účast. V případě jakéhokoliv dotazu nás můžete kontaktovat na adrese
         <a href="mailto:wikikonference@wikimedia.cz">wikikonference@wikimedia.cz</a>.
     </p>
+
+    <p>
+        Pokud šlo o omyl, můžete potvrzení vrátit skrz kliknutí na <a href="{{ url_for('unconfirm_registration', event_id=event.id, mail=participant.email, token=token) }}">tento odkaz</a>.
+    </p>
 </div>
 {% endblock %}

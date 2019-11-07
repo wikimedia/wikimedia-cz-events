@@ -95,9 +95,9 @@ def confirm_registration(event_id, mail, token):
 			else:
 				participant.confirmed = True
 			db.session.commit()
-			return render_template('confirmed.html')
+			return render_template('confirmed.html', event=event, token=token, participant=participant)
 		else:
-			return render_template('already_confirmed.html')
+			return render_template('already_confirmed.html', event=event, token=token, participant=participant)
 	else:
 		return render_template('bad_token.html') # misleading, but ok
 
@@ -113,9 +113,9 @@ def unconfirm_registration(event_id, mail, token):
 				return render_template('bad_token.html')
 			participant.confirmed = False
 			db.session.commit()
-			return render_template('unconfirmed.html')
+			return render_template('unconfirmed.html', event=event, token=token, participant=participant)
 		else:
-			return render_template('already_unconfirmed.html')
+			return render_template('already_unconfirmed.html', event=event, token=token, participant=participant)
 	else:
 		return render_template('bad_token.html') # misleading, but ok
 
