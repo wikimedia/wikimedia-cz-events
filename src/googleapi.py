@@ -81,7 +81,9 @@ def confirm_participant(table_id, mail, confirmed=True, sheet="Účastníci"):
 		if email == mail:
 			participant_id = i + 2
 			break
-	
+	if participant_id is None:
+		print('Skipping %s, not found in Google Spreadsheets' % mail)
+		return
 	participantRange = "%s!%s%s:%s%s" % (sheet, confirmed_item, participant_id, confirmed_item, participant_id)
 	if confirmed:
 		confirmed_value = "Y"
